@@ -1,12 +1,42 @@
 from datetime import datetime
-from typing import List, Literal, Optional
+from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 
 FuelType = Literal["Petrol", "Diesel", "CNG", "Electric", "Hybrid"]
 TransmissionType = Literal["Manual", "Automatic"]
 VehicleType = Literal["Hatchback", "Sedan", "SUV", "MUV", "Coupe", "Other"]
+Priority = Literal["price", "mileage", "safety", "performance", "comfort"]
+
+_FUEL_TYPE_MAP = {v.lower(): v for v in ("Petrol", "Diesel", "CNG", "Electric", "Hybrid")}
+_TRANSMISSION_MAP = {v.lower(): v for v in ("Manual", "Automatic")}
+_VEHICLE_TYPE_MAP = {
+    v.lower(): v for v in ("Hatchback", "Sedan", "SUV", "MUV", "Coupe", "Other")
+}
+_PRIORITY_VALUES = frozenset({"price", "mileage", "safety", "performance", "comfort"})
+
+
+def _normalize_enum(value: Any, mapping: Dict[str, str], field_name: str) -> Optional[str]:
+    """Normalize categorical input to canonical casing; blank → None."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise ValueError(f"{field_name} must be a string")
+    stripped = value.strip()
+    if not stripped:
+        return None
+    canonical = mapping.get(stripped.lower())
+    if canonical is None:
+        allowed = ", ".join(sorted(set(mapping.values())))
+        raise ValueError(f"Invalid {field_name} '{value}'. Allowed: {allowed}")
+    return canonical
 
 
 class VehicleBase(BaseModel):
@@ -141,16 +171,217 @@ class VehicleListResponse(BaseModel):
 
 
 class RecommendationRequest(BaseModel):
-    budget: float = Field(..., ge=0)
-    fuel_type: str
-    transmission: str
-    vehicle_type: str
-    minimum_mileage: float = Field(..., ge=0)
-    seating_capacity: int = Field(..., ge=1)
-    priorities: List[str] = Field(default_factory=list)
+    """User requirements for vehicle recommendations (Phase 3.1).
+
+    Mandatory-style filters (applied as hard SQL filters when provided):
+      budget_min, budget_max, vehicle_type, fuel_type, transmission,
+      seating_capacity (minimum seats).
+
+    Preferred fields (stored in response metadata; not hard filters yet):
+      priorities, preferred_mileage, preferred_safety_rating.
+
+    Backward-compatible aliases:
+      budget → budget_max
+      minimum_mileage → preferred_mileage
+    """
+
+    model_config = ConfigDict(
+        extra="ignore",
+        json_schema_extra={
+            "examples": [
+                {
+                    "budget_max": 1500000,
+                    "budget_min": 800000,
+                    "fuel_type": "Petrol",
+                    "transmission": "Automatic",
+                    "vehicle_type": "SUV",
+                    "seating_capacity": 5,
+                    "priorities": ["mileage", "safety"],
+                    "preferred_mileage": 15,
+                    "preferred_safety_rating": 4.0,
+                },
+                {
+                    "budget": 1500000,
+                    "fuel_type": "Petrol",
+                    "transmission": "Automatic",
+                    "vehicle_type": "SUV",
+                    "minimum_mileage": 15,
+                    "seating_capacity": 5,
+                    "priorities": ["mileage", "safety"],
+                },
+            ]
+        },
+    )
+
+    budget_min: Optional[float] = Field(
+        default=None,
+        gt=0,
+        description="Minimum price filter (inclusive). Ignored when omitted.",
+    )
+    budget_max: Optional[float] = Field(
+        default=None,
+        gt=0,
+        description="Maximum price filter (inclusive). Alias: budget.",
+    )
+    vehicle_type: Optional[VehicleType] = Field(
+        default=None,
+        description="Body type filter. Ignored when omitted.",
+    )
+    fuel_type: Optional[FuelType] = Field(
+        default=None,
+        description="Fuel type filter. Ignored when omitted.",
+    )
+    transmission: Optional[TransmissionType] = Field(
+        default=None,
+        description="Transmission filter. Ignored when omitted.",
+    )
+    seating_capacity: Optional[int] = Field(
+        default=None,
+        gt=0,
+        description="Minimum seating capacity (vehicle seats >= this value).",
+    )
+    priorities: List[Priority] = Field(
+        default_factory=list,
+        description="Preferred ranking factors (not hard filters in Phase 3.2).",
+    )
+    preferred_mileage: Optional[float] = Field(
+        default=None,
+        ge=0,
+        description="Preferred mileage soft signal. Alias: minimum_mileage.",
+    )
+    preferred_safety_rating: Optional[float] = Field(
+        default=None,
+        ge=0,
+        le=5,
+        description="Preferred safety rating soft signal (0–5).",
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def accept_legacy_aliases(cls, data: Any) -> Any:
+        """Map legacy frontend fields onto the Phase 3.1 names."""
+        if not isinstance(data, dict):
+            return data
+        # Shallow copy so we do not mutate the caller's dict.
+        data = dict(data)
+
+        if "budget_max" not in data or data.get("budget_max") is None:
+            if data.get("budget") is not None:
+                data["budget_max"] = data["budget"]
+        data.pop("budget", None)
+
+        if "preferred_mileage" not in data or data.get("preferred_mileage") is None:
+            if data.get("minimum_mileage") is not None:
+                data["preferred_mileage"] = data["minimum_mileage"]
+        data.pop("minimum_mileage", None)
+
+        # Normalize blank strings to None for optional categoricals.
+        for key in ("vehicle_type", "fuel_type", "transmission"):
+            if key in data and isinstance(data[key], str) and not data[key].strip():
+                data[key] = None
+
+        return data
+
+    @field_validator("fuel_type", mode="before")
+    @classmethod
+    def normalize_fuel_type(cls, value: Any) -> Any:
+        return _normalize_enum(value, _FUEL_TYPE_MAP, "fuel_type")
+
+    @field_validator("transmission", mode="before")
+    @classmethod
+    def normalize_transmission(cls, value: Any) -> Any:
+        return _normalize_enum(value, _TRANSMISSION_MAP, "transmission")
+
+    @field_validator("vehicle_type", mode="before")
+    @classmethod
+    def normalize_vehicle_type(cls, value: Any) -> Any:
+        return _normalize_enum(value, _VEHICLE_TYPE_MAP, "vehicle_type")
+
+    @field_validator("priorities", mode="before")
+    @classmethod
+    def normalize_priorities(cls, value: Any) -> Any:
+        if value is None:
+            return []
+        if not isinstance(value, list):
+            raise ValueError("priorities must be a list")
+        normalized: List[str] = []
+        for item in value:
+            if not isinstance(item, str):
+                raise ValueError("each priority must be a string")
+            key = item.strip().lower()
+            if key not in _PRIORITY_VALUES:
+                allowed = ", ".join(sorted(_PRIORITY_VALUES))
+                raise ValueError(
+                    f"Invalid priority '{item}'. Allowed: {allowed}"
+                )
+            if key not in normalized:
+                normalized.append(key)
+        return normalized
+
+    @model_validator(mode="after")
+    def validate_budget_range(self) -> "RecommendationRequest":
+        if (
+            self.budget_min is not None
+            and self.budget_max is not None
+            and self.budget_min > self.budget_max
+        ):
+            raise ValueError(
+                "budget_min must be less than or equal to budget_max"
+            )
+        return self
+
+    def applied_mandatory_filters(self) -> Dict[str, Union[float, int, str]]:
+        """Summary of hard filters that will be applied (unset keys omitted)."""
+        summary: Dict[str, Union[float, int, str]] = {}
+        if self.budget_min is not None:
+            summary["budget_min"] = self.budget_min
+        if self.budget_max is not None:
+            summary["budget_max"] = self.budget_max
+        if self.vehicle_type is not None:
+            summary["vehicle_type"] = self.vehicle_type
+        if self.fuel_type is not None:
+            summary["fuel_type"] = self.fuel_type
+        if self.transmission is not None:
+            summary["transmission"] = self.transmission
+        if self.seating_capacity is not None:
+            summary["seating_capacity"] = self.seating_capacity
+        return summary
+
+    def preference_metadata(self) -> Dict[str, Any]:
+        """Soft preferences stored for later ranking phases."""
+        return {
+            "priorities": list(self.priorities),
+            "preferred_mileage": self.preferred_mileage,
+            "preferred_safety_rating": self.preferred_safety_rating,
+        }
+
+
+class AppliedFilters(BaseModel):
+    """Mandatory filters that were applied to the candidate query."""
+
+    budget_min: Optional[float] = None
+    budget_max: Optional[float] = None
+    vehicle_type: Optional[str] = None
+    fuel_type: Optional[str] = None
+    transmission: Optional[str] = None
+    seating_capacity: Optional[int] = None
+
+
+class PreferenceMetadata(BaseModel):
+    """Preferred signals retained for Phase 3.3+ ranking (not hard filters)."""
+
+    priorities: List[Priority] = Field(default_factory=list)
+    preferred_mileage: Optional[float] = None
+    preferred_safety_rating: Optional[float] = None
 
 
 class RecommendationResponse(BaseModel):
+    """Filtered recommendation results (Phase 3.2 — rule-based filtering only)."""
+
     success: bool = True
-    recommendations: list = Field(default_factory=list)
-    message: str = "Recommendation engine will be implemented later."
+    status: Literal["matches_found", "no_matches"] = "no_matches"
+    message: str = ""
+    total: int = Field(default=0, ge=0)
+    recommendations: List[VehicleResponse] = Field(default_factory=list)
+    applied_filters: AppliedFilters = Field(default_factory=AppliedFilters)
+    preferences: PreferenceMetadata = Field(default_factory=PreferenceMetadata)
