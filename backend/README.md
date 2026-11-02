@@ -35,15 +35,34 @@ uvicorn app.main:app --reload
 | Method | Path | Description |
 |--------|------|-------------|
 | GET | `/api/health` | Health check |
-| GET | `/api/vehicles` | List vehicles |
+| GET | `/api/vehicles` | List vehicles (pagination, filters, sort) |
 | GET | `/api/vehicles/{id}` | Get vehicle |
 | POST | `/api/vehicles` | Create vehicle |
 | PUT | `/api/vehicles/{id}` | Update vehicle |
 | DELETE | `/api/vehicles/{id}` | Delete vehicle |
 | POST | `/api/recommendations` | Recommendation stub |
 
+## Database migrations
+
+```bash
+alembic upgrade head
+```
+
+## Seed demo vehicles
+
+```bash
+python scripts/seed_vehicles.py
+```
+
+See `scripts/README.md`. Sample data is for demos only.
+
+## API testing
+
+- Postman: `postman/Vehicle_API_Collection.json` (see `postman/README.md`)
+- Swagger: http://127.0.0.1:8000/docs
+
 ## Notes
 
 - `GEMINI_API_KEY` is reserved for a later phase.
 - Recommendation ranking with scikit-learn is not implemented yet.
-- If the database is empty, list/get endpoints return a small placeholder dataset.
+- Vehicle list/get are PostgreSQL-backed only (no in-memory placeholders).

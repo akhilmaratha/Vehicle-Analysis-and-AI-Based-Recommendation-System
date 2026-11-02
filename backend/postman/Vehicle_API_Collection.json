@@ -1,0 +1,576 @@
+{
+  "info": {
+    "_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+    "name": "Vehicle Recommendation API — Vehicles CRUD",
+    "description": "Phase 1.6 collection for Vehicle CRUD APIs.\n\nCollection variable `baseUrl` defaults to http://127.0.0.1:8000.\nCreate request saves `vehicleId` for get/update/delete chain.\n\nSuggested run order:\n1) Empty DB folder (test 16) before seeding\n2) CRUD Happy Path + Filters + Errors\n\nSwagger UI: {{baseUrl}}/docs",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://127.0.0.1:8000"
+    },
+    {
+      "key": "vehicleId",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "16 — Empty DB (run before seeding)",
+      "item": [
+        {
+          "name": "16 Get vehicles when database contains no records",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Empty list structure', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('items');",
+                  "  pm.expect(body.items).to.be.an('array');",
+                  "  pm.expect(body.total).to.eql(0);",
+                  "  pm.expect(body.items.length).to.eql(0);",
+                  "  pm.expect(body.page).to.eql(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?page=1&limit=10",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" }
+              ]
+            },
+            "description": "Run against an empty vehicles table (before seed). Expects items=[] and total=0."
+          }
+        }
+      ]
+    },
+    {
+      "name": "CRUD Happy Path",
+      "item": [
+        {
+          "name": "01 Create a vehicle successfully",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 201', function () {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('Body has id and brand', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('id');",
+                  "  pm.expect(body.brand).to.eql('PostmanTest');",
+                  "  pm.expect(body.model).to.eql('CRUD');",
+                  "  pm.collectionVariables.set('vehicleId', String(body.id));",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brand\": \"PostmanTest\",\n  \"model\": \"CRUD\",\n  \"variant\": \"Phase16\",\n  \"price\": 999999,\n  \"fuel_type\": \"Petrol\",\n  \"transmission\": \"Manual\",\n  \"vehicle_type\": \"Hatchback\",\n  \"mileage\": 20.5,\n  \"engine\": \"1.2L\",\n  \"power\": \"90 PS\",\n  \"torque\": \"110 Nm\",\n  \"seating_capacity\": 5,\n  \"boot_space\": 300,\n  \"safety_rating\": 4.0,\n  \"description\": \"Created by Postman collection for CRUD chain.\",\n  \"image_url\": null\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"]
+            }
+          }
+        },
+        {
+          "name": "02 Get all vehicles",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Paginated list shape', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('items');",
+                  "  pm.expect(body).to.have.property('total');",
+                  "  pm.expect(body).to.have.property('page');",
+                  "  pm.expect(body).to.have.property('limit');",
+                  "  pm.expect(body).to.have.property('pages');",
+                  "  pm.expect(body.items).to.be.an('array');",
+                  "  pm.expect(body.total).to.be.at.least(1);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"]
+            }
+          }
+        },
+        {
+          "name": "03 Get vehicles with pagination",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Pagination metadata', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.page).to.eql(1);",
+                  "  pm.expect(body.limit).to.eql(2);",
+                  "  pm.expect(body.items.length).to.be.at.most(2);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?page=1&limit=2",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "2" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "09 Get vehicle by valid ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Matches saved vehicleId', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(String(body.id)).to.eql(pm.collectionVariables.get('vehicleId'));",
+                  "  pm.expect(body.brand).to.eql('PostmanTest');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles", "{{vehicleId}}"]
+            }
+          }
+        },
+        {
+          "name": "11 Update an existing vehicle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Partial update applied', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.price).to.eql(1111111);",
+                  "  pm.expect(body.description).to.include('updated');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 1111111,\n  \"description\": \"Postman updated vehicle.\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles", "{{vehicleId}}"]
+            }
+          }
+        },
+        {
+          "name": "13 Delete an existing vehicle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 204', function () {",
+                  "  pm.response.to.have.status(204);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/{{vehicleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles", "{{vehicleId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Filters and Sorting",
+      "item": [
+        {
+          "name": "04 Filter vehicles by brand",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('All items match brand when present', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body).to.have.property('items');",
+                  "  body.items.forEach(function (v) {",
+                  "    pm.expect(v.brand.toLowerCase()).to.eql('hyundai');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?brand=Hyundai",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [{ "key": "brand", "value": "Hyundai" }]
+            }
+          }
+        },
+        {
+          "name": "05 Filter by fuel type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Fuel type filter', function () {",
+                  "  const body = pm.response.json();",
+                  "  body.items.forEach(function (v) {",
+                  "    pm.expect(v.fuel_type).to.eql('Diesel');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?fuel_type=Diesel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [{ "key": "fuel_type", "value": "Diesel" }]
+            }
+          }
+        },
+        {
+          "name": "06 Filter by transmission",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Transmission filter', function () {",
+                  "  const body = pm.response.json();",
+                  "  body.items.forEach(function (v) {",
+                  "    pm.expect(v.transmission).to.eql('Automatic');",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?transmission=Automatic",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [{ "key": "transmission", "value": "Automatic" }]
+            }
+          }
+        },
+        {
+          "name": "07 Filter by price range",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Price within range', function () {",
+                  "  const body = pm.response.json();",
+                  "  body.items.forEach(function (v) {",
+                  "    pm.expect(v.price).to.be.at.least(500000);",
+                  "    pm.expect(v.price).to.be.at.most(1500000);",
+                  "  });",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?min_price=500000&max_price=1500000",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                { "key": "min_price", "value": "500000" },
+                { "key": "max_price", "value": "1500000" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "08 Sort vehicles by price",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 200', function () {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Prices ascending', function () {",
+                  "  const body = pm.response.json();",
+                  "  const prices = body.items.map(v => Number(v.price));",
+                  "  const sorted = [...prices].sort((a, b) => a - b);",
+                  "  pm.expect(prices).to.eql(sorted);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles?sort_by=price&sort_order=asc&limit=20",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"],
+              "query": [
+                { "key": "sort_by", "value": "price" },
+                { "key": "sort_order", "value": "asc" },
+                { "key": "limit", "value": "20" }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Error Cases",
+      "item": [
+        {
+          "name": "10 Get vehicle by invalid ID",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Error payload', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(false);",
+                  "  pm.expect(body.message).to.be.a('string');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/99999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles", "99999999"]
+            }
+          }
+        },
+        {
+          "name": "12 Update a nonexistent vehicle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Error payload', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"price\": 123456\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/99999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles", "99999999"]
+            }
+          }
+        },
+        {
+          "name": "14 Delete a nonexistent vehicle",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 404', function () {",
+                  "  pm.response.to.have.status(404);",
+                  "});",
+                  "pm.test('Error payload', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(false);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles/99999999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles", "99999999"]
+            }
+          }
+        },
+        {
+          "name": "15 Submit invalid vehicle data",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Status is 422', function () {",
+                  "  pm.response.to.have.status(422);",
+                  "});",
+                  "pm.test('Validation error payload', function () {",
+                  "  const body = pm.response.json();",
+                  "  pm.expect(body.success).to.eql(false);",
+                  "  pm.expect(body).to.have.property('errors');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"brand\": \"\",\n  \"model\": \"X\",\n  \"price\": -10,\n  \"fuel_type\": \"Water\",\n  \"transmission\": \"Manual\",\n  \"vehicle_type\": \"Hatchback\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/vehicles",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "vehicles"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

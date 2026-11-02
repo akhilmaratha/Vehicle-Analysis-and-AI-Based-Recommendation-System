@@ -49,7 +49,28 @@ class VehicleBase(BaseModel):
 class VehicleCreate(VehicleBase):
     """Payload for creating a vehicle. Required identification, pricing, and type fields."""
 
-    pass
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "brand": "Hyundai",
+                "model": "Creta",
+                "variant": "SX (O)",
+                "price": 1450000,
+                "fuel_type": "Petrol",
+                "transmission": "Automatic",
+                "vehicle_type": "SUV",
+                "mileage": 17.4,
+                "engine": "1.5L",
+                "power": "115 PS",
+                "torque": "144 Nm",
+                "seating_capacity": 5,
+                "boot_space": 433,
+                "safety_rating": 5.0,
+                "description": "Sample compact SUV entry for API demos.",
+                "image_url": None,
+            }
+        }
+    )
 
 
 class VehicleUpdate(BaseModel):

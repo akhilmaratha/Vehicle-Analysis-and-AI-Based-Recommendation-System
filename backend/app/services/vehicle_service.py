@@ -1,142 +1,170 @@
-from datetime import datetime, timezone
-from typing import Any, List
+"""Database-backed vehicle CRUD. No in-memory / placeholder fallbacks."""
+
+from __future__ import annotations
+
+import math
+from typing import Optional
 
 from fastapi import HTTPException, status
+from sqlalchemy import asc, desc, func
 from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Query, Session
 
 from app.models.vehicle import Vehicle
-from app.schemas.vehicle import VehicleCreate, VehicleUpdate
+from app.schemas.vehicle import (
+    SortByField,
+    SortOrder,
+    VehicleCreate,
+    VehicleListResponse,
+    VehicleUpdate,
+)
 
-_NOW = datetime.now(timezone.utc)
-
-# Used when the database is empty or unavailable so the frontend still has demo data.
-PLACEHOLDER_VEHICLES = [
-    {
-        "id": 1,
-        "brand": "Hyundai",
-        "model": "Creta",
-        "variant": "SX",
-        "price": 1450000,
-        "fuel_type": "Petrol",
-        "transmission": "Automatic",
-        "vehicle_type": "SUV",
-        "mileage": 17.4,
-        "engine": "1.5L",
-        "power": "115 PS",
-        "torque": "144 Nm",
-        "seating_capacity": 5,
-        "boot_space": 433,
-        "safety_rating": 5.0,
-        "description": "Popular compact SUV with strong safety features.",
-        "image_url": None,
-        "created_at": _NOW,
-        "updated_at": _NOW,
-    },
-    {
-        "id": 2,
-        "brand": "Maruti Suzuki",
-        "model": "Grand Vitara",
-        "variant": "Alpha",
-        "price": 1550000,
-        "fuel_type": "Hybrid",
-        "transmission": "Automatic",
-        "vehicle_type": "SUV",
-        "mileage": 27.9,
-        "engine": "1.5L Hybrid",
-        "power": "115 PS",
-        "torque": "141 Nm",
-        "seating_capacity": 5,
-        "boot_space": 373,
-        "safety_rating": 5.0,
-        "description": "Efficient hybrid SUV for city and highway driving.",
-        "image_url": None,
-        "created_at": _NOW,
-        "updated_at": _NOW,
-    },
-    {
-        "id": 3,
-        "brand": "Tata",
-        "model": "Nexon",
-        "variant": "Fearless+",
-        "price": 1250000,
-        "fuel_type": "Petrol",
-        "transmission": "Manual",
-        "vehicle_type": "SUV",
-        "mileage": 17.4,
-        "engine": "1.2L Turbo",
-        "power": "120 PS",
-        "torque": "170 Nm",
-        "seating_capacity": 5,
-        "boot_space": 382,
-        "safety_rating": 5.0,
-        "description": "Feature-rich compact SUV with a strong safety rating.",
-        "image_url": None,
-        "created_at": _NOW,
-        "updated_at": _NOW,
-    },
-]
+_SORT_COLUMNS = {
+    "price": Vehicle.price,
+    "mileage": Vehicle.mileage,
+    "created_at": Vehicle.created_at,
+}
 
 
-def get_vehicles(db: Session) -> List[Any]:
+def _rollback_and_raise(db: Session, exc: Exception) -> None:
+    """Rollback the current transaction, then re-raise for global handlers."""
     try:
-        vehicles = db.query(Vehicle).order_by(Vehicle.id).all()
-        if vehicles:
-            return vehicles
-    except SQLAlchemyError:
         db.rollback()
-    return PLACEHOLDER_VEHICLES
+    except Exception:
+        pass
+    raise exc
 
 
-def get_vehicle_by_id(db: Session, vehicle_id: int) -> Any:
+def _apply_filters(
+    query: Query,
+    *,
+    brand: Optional[str] = None,
+    fuel_type: Optional[str] = None,
+    transmission: Optional[str] = None,
+    vehicle_type: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    min_mileage: Optional[float] = None,
+    max_mileage: Optional[float] = None,
+    seating_capacity: Optional[int] = None,
+) -> Query:
+    if brand:
+        query = query.filter(Vehicle.brand.ilike(brand.strip()))
+    if fuel_type:
+        query = query.filter(Vehicle.fuel_type == fuel_type)
+    if transmission:
+        query = query.filter(Vehicle.transmission == transmission)
+    if vehicle_type:
+        query = query.filter(Vehicle.vehicle_type == vehicle_type)
+    if min_price is not None:
+        query = query.filter(Vehicle.price >= min_price)
+    if max_price is not None:
+        query = query.filter(Vehicle.price <= max_price)
+    if min_mileage is not None:
+        query = query.filter(Vehicle.mileage >= min_mileage)
+    if max_mileage is not None:
+        query = query.filter(Vehicle.mileage <= max_mileage)
+    if seating_capacity is not None:
+        query = query.filter(Vehicle.seating_capacity == seating_capacity)
+    return query
+
+
+def get_vehicles(
+    db: Session,
+    *,
+    page: int = 1,
+    limit: int = 10,
+    brand: Optional[str] = None,
+    fuel_type: Optional[str] = None,
+    transmission: Optional[str] = None,
+    vehicle_type: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    min_mileage: Optional[float] = None,
+    max_mileage: Optional[float] = None,
+    seating_capacity: Optional[int] = None,
+    sort_by: SortByField = "created_at",
+    sort_order: SortOrder = "desc",
+) -> VehicleListResponse:
+    """List vehicles with pagination, filters, and sorting. Empty list if none match."""
+    try:
+        query = db.query(Vehicle)
+        query = _apply_filters(
+            query,
+            brand=brand,
+            fuel_type=fuel_type,
+            transmission=transmission,
+            vehicle_type=vehicle_type,
+            min_price=min_price,
+            max_price=max_price,
+            min_mileage=min_mileage,
+            max_mileage=max_mileage,
+            seating_capacity=seating_capacity,
+        )
+
+        total = query.with_entities(func.count(Vehicle.id)).scalar() or 0
+
+        sort_column = _SORT_COLUMNS.get(sort_by, Vehicle.created_at)
+        order_fn = asc if sort_order == "asc" else desc
+        query = query.order_by(order_fn(sort_column), asc(Vehicle.id))
+
+        offset = (page - 1) * limit
+        items = query.offset(offset).limit(limit).all()
+        pages = math.ceil(total / limit) if limit and total else 0
+
+        return VehicleListResponse(
+            items=items,
+            total=total,
+            page=page,
+            limit=limit,
+            pages=pages,
+        )
+    except SQLAlchemyError as exc:
+        _rollback_and_raise(db, exc)
+
+
+def get_vehicle_by_id(db: Session, vehicle_id: int) -> Vehicle:
     try:
         vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
-        if vehicle:
-            return vehicle
-    except SQLAlchemyError:
-        db.rollback()
+    except SQLAlchemyError as exc:
+        _rollback_and_raise(db, exc)
 
-    for item in PLACEHOLDER_VEHICLES:
-        if item["id"] == vehicle_id:
-            return item
-
-    raise HTTPException(
-        status_code=status.HTTP_404_NOT_FOUND,
-        detail=f"Vehicle with id {vehicle_id} not found",
-    )
+    if not vehicle:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Vehicle with id {vehicle_id} not found",
+        )
+    return vehicle
 
 
 def create_vehicle(db: Session, payload: VehicleCreate) -> Vehicle:
     vehicle = Vehicle(**payload.model_dump())
-    db.add(vehicle)
-    db.commit()
-    db.refresh(vehicle)
-    return vehicle
+    try:
+        db.add(vehicle)
+        db.commit()
+        db.refresh(vehicle)
+        return vehicle
+    except SQLAlchemyError as exc:
+        _rollback_and_raise(db, exc)
 
 
 def update_vehicle(db: Session, vehicle_id: int, payload: VehicleUpdate) -> Vehicle:
-    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
-    if not vehicle:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Vehicle with id {vehicle_id} not found",
-        )
-
-    for key, value in payload.model_dump(exclude_unset=True).items():
-        setattr(vehicle, key, value)
-
-    db.commit()
-    db.refresh(vehicle)
-    return vehicle
+    vehicle = get_vehicle_by_id(db, vehicle_id)
+    updates = payload.model_dump(exclude_unset=True)
+    try:
+        for key, value in updates.items():
+            setattr(vehicle, key, value)
+        db.commit()
+        db.refresh(vehicle)
+        return vehicle
+    except SQLAlchemyError as exc:
+        _rollback_and_raise(db, exc)
 
 
 def delete_vehicle(db: Session, vehicle_id: int) -> None:
-    vehicle = db.query(Vehicle).filter(Vehicle.id == vehicle_id).first()
-    if not vehicle:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Vehicle with id {vehicle_id} not found",
-        )
-
-    db.delete(vehicle)
-    db.commit()
+    vehicle = get_vehicle_by_id(db, vehicle_id)
+    try:
+        db.delete(vehicle)
+        db.commit()
+    except SQLAlchemyError as exc:
+        _rollback_and_raise(db, exc)
