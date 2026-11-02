@@ -11,9 +11,14 @@ router = APIRouter(prefix="/api", tags=["recommendations"])
 @router.post(
     "/recommendations",
     response_model=RecommendationResponse,
-    summary="Filter vehicles by recommendation requirements",
+    summary="Recommend vehicles (filter, score, rank top-5 + alternatives)",
     responses={
-        200: {"description": "Matching vehicles (may be empty)"},
+        200: {
+            "description": (
+                "Primary top-5 plus optional same-pool alternatives "
+                "(may be empty when no matches)"
+            )
+        },
         422: {"description": "Validation error"},
         500: {"description": "Database error"},
     },
@@ -22,9 +27,10 @@ async def create_recommendations(
     payload: RecommendationRequest,
     db: Session = Depends(get_db),
 ) -> RecommendationResponse:
-    """Apply mandatory filters from the request and return matching vehicles.
+    """Filter → weighted score → similarity → final rank → top-5 / alternatives.
 
-    Preferences and priorities are accepted and echoed in metadata but are
-    not used as hard filters in Phase 3.2.
+    Hard filters run first. Soft prefs influence scoring only. Alternatives
+    are next-ranked vehicles from the same mandatory-filtered set when more
+    than five are eligible; never produced by relaxing hard filters.
     """
     return recommendation_service.get_recommendations(db, payload)

@@ -375,13 +375,100 @@ class PreferenceMetadata(BaseModel):
     preferred_safety_rating: Optional[float] = None
 
 
+class ScoreBreakdown(BaseModel):
+    """Per-vehicle weighted scoring detail (Phase 3.3).
+
+    ``criterion_scores`` values are ``None`` when the criterion was unavailable
+    (missing / unparseable) for that vehicle — never invented as 0 or 1.
+    ``effective_weights`` are the renormalized weights actually used for
+    ``final_score`` (sum to 1.0, or all 0.0 when nothing was scorable).
+    ``base_weights`` are the priority-derived weights before per-vehicle
+    availability renormalization.
+    """
+
+    criterion_scores: Dict[str, Optional[float]] = Field(default_factory=dict)
+    effective_weights: Dict[str, float] = Field(default_factory=dict)
+    base_weights: Dict[str, float] = Field(default_factory=dict)
+    final_score: float = Field(..., ge=0, le=1)
+
+
+class RecommendationItem(VehicleResponse):
+    """Vehicle plus scores, rank, and rule-based reason (Phases 3.3–3.6)."""
+
+    rank: int = Field(
+        ...,
+        ge=1,
+        description="1-based position by final_rank_score within the result set.",
+    )
+    weighted_score: float = Field(
+        ...,
+        ge=0,
+        le=1,
+        description="Weighted multi-criterion score in [0, 1].",
+    )
+    match_percentage: int = Field(
+        ...,
+        ge=0,
+        le=100,
+        description="Convenience percentage: round(weighted_score * 100).",
+    )
+    similarity_score: float = Field(
+        ...,
+        ge=0,
+        le=1,
+        description="Cosine similarity to user preference vector in [0, 1].",
+    )
+    final_rank_score: float = Field(
+        ...,
+        ge=0,
+        le=1,
+        description="Blend: weighted_score * 0.70 + similarity_score * 0.30.",
+    )
+    score_breakdown: ScoreBreakdown
+    reason: str = Field(
+        default="",
+        description="Short rule-based explanation from top criteria / matched filters.",
+    )
+
+
 class RecommendationResponse(BaseModel):
-    """Filtered recommendation results (Phase 3.2 — rule-based filtering only)."""
+    """Ranked recommendation results (Phases 3.2–3.6).
+
+    Envelope keeps success / status / message / total / applied_filters /
+    preferences. ``total`` remains the eligible count (before top-5) for
+    backward compatibility; ``total_eligible`` mirrors it explicitly.
+    ``recommendations`` is the primary top-5; ``alternatives`` holds the
+    next-ranked eligible vehicles when more than five match.
+    """
 
     success: bool = True
     status: Literal["matches_found", "no_matches"] = "no_matches"
     message: str = ""
-    total: int = Field(default=0, ge=0)
-    recommendations: List[VehicleResponse] = Field(default_factory=list)
+    total: int = Field(
+        default=0,
+        ge=0,
+        description="Eligible vehicles after mandatory filters (alias of total_eligible).",
+    )
+    total_eligible: int = Field(
+        default=0,
+        ge=0,
+        description="Eligible vehicles after mandatory filters, before top-N truncation.",
+    )
+    recommendations_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of primary recommendations returned (≤ 5).",
+    )
+    alternatives_count: int = Field(
+        default=0,
+        ge=0,
+        description="Number of alternative recommendations returned (≤ 5).",
+    )
+    fewer_than_five_eligible: bool = Field(
+        default=False,
+        description="True when fewer than five vehicles passed mandatory filters.",
+    )
+    recommendations: List[RecommendationItem] = Field(default_factory=list)
+    alternatives: List[RecommendationItem] = Field(default_factory=list)
     applied_filters: AppliedFilters = Field(default_factory=AppliedFilters)
     preferences: PreferenceMetadata = Field(default_factory=PreferenceMetadata)

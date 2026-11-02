@@ -1,8 +1,16 @@
-"""Rule-based recommendation filtering (Phase 3.1 data prep + Phase 3.2 filters).
+"""Recommendation pipeline: filter → score → similarity → rank → top-5 / alternatives.
 
-Hard filters run as a single SQLAlchemy AND query against PostgreSQL.
-Preferences / priorities are returned in response metadata only — not used
-as filters in this phase. No scoring, ranking, or ML.
+Phases
+------
+3.2 Mandatory SQL AND filters (preferences never hard-filter).
+3.3 Weighted criterion scoring on the eligible set.
+3.4 Cosine similarity to the user preference vector.
+3.5 Final rank blend + primary top-5 selection.
+3.6 Alternatives = next-ranked vehicles from the **same** eligible set
+    when more than five match; empty when the eligible set has ≤ 5
+    (cannot expand without relaxing mandatory filters).
+
+No Gemini, no fake results, no Phase 4.
 """
 
 from __future__ import annotations
@@ -17,10 +25,15 @@ from app.models.vehicle import Vehicle
 from app.schemas.vehicle import (
     AppliedFilters,
     PreferenceMetadata,
+    RecommendationItem,
     RecommendationRequest,
     RecommendationResponse,
-    VehicleResponse,
+    ScoreBreakdown,
 )
+from app.services.ranking import rank_and_select
+from app.services.scoring_weights import PRIMARY_TOP_N
+from app.services.similarity import compute_similarity_scores
+from app.services.weighted_scoring import score_candidates
 
 
 def _to_float(value: Any) -> Optional[float]:
@@ -81,7 +94,7 @@ def apply_mandatory_filters(
     """Apply AND hard filters for fields that are set on the request.
 
     Preferences (priorities, preferred_mileage, preferred_safety_rating)
-    are intentionally ignored here.
+    are intentionally ignored here — they only affect Phase 3.3 / 3.4.
     """
     if requirements.budget_min is not None:
         query = query.filter(Vehicle.price >= requirements.budget_min)
@@ -120,15 +133,71 @@ def _build_preferences(requirements: RecommendationRequest) -> PreferenceMetadat
     return PreferenceMetadata(**meta)
 
 
+def _score_candidates(
+    candidates: List[Dict[str, Any]],
+    requirements: RecommendationRequest,
+) -> List[Dict[str, Any]]:
+    """Attach weighted + similarity scores (3.3 / 3.4) to eligible candidates."""
+    weighted = score_candidates(candidates, requirements.priorities)
+    similarities = compute_similarity_scores(candidates, requirements)
+
+    scored: List[Dict[str, Any]] = []
+    for candidate, w, sim in zip(candidates, weighted, similarities):
+        scored.append(
+            {
+                **candidate,
+                "weighted_score": w["weighted_score"],
+                "match_percentage": w["match_percentage"],
+                "similarity_score": sim,
+                "score_breakdown": w["score_breakdown"],
+            }
+        )
+    return scored
+
+
+def _to_recommendation_item(payload: Dict[str, Any]) -> RecommendationItem:
+    """Validate a ranked payload into a RecommendationItem."""
+    breakdown = payload.get("score_breakdown")
+    if isinstance(breakdown, dict):
+        payload = {**payload, "score_breakdown": ScoreBreakdown(**breakdown)}
+    return RecommendationItem.model_validate(payload)
+
+
+def _build_message(
+    *,
+    total_eligible: int,
+    recommendations_count: int,
+    alternatives_count: int,
+    fewer_than_five_eligible: bool,
+) -> str:
+    if total_eligible == 0:
+        return "No vehicles matched the provided requirements."
+
+    parts = [
+        f"Found {total_eligible} eligible vehicle(s); "
+        f"returning {recommendations_count} primary recommendation(s)."
+    ]
+    if fewer_than_five_eligible:
+        parts.append(
+            f"Fewer than {PRIMARY_TOP_N} vehicles matched the mandatory filters; "
+            "no additional mandatory-compliant alternatives are available."
+        )
+    elif alternatives_count > 0:
+        parts.append(
+            f"Also returning {alternatives_count} alternative(s) from the "
+            "same eligible pool (next-ranked after the top 5)."
+        )
+    return " ".join(parts)
+
+
 def get_recommendations(
     db: Session,
     requirements: RecommendationRequest,
 ) -> RecommendationResponse:
-    """Query PostgreSQL for vehicles matching mandatory filters.
+    """Filter, score, rank, and return primary top-5 plus same-pool alternatives.
 
-    Returns an empty recommendations list with status=no_matches when none
-    match — that is success, not an error. DB failures propagate to the
-    global SQLAlchemy handlers (no fake results).
+    Empty eligible set → status=no_matches (success, not an error).
+    DB failures propagate to the global SQLAlchemy handlers (no fake results).
     """
     applied = _build_applied_filters(requirements)
     preferences = _build_preferences(requirements)
@@ -136,35 +205,64 @@ def get_recommendations(
     try:
         query = db.query(Vehicle)
         query = apply_mandatory_filters(query, requirements)
-        # Stable order for deterministic API output; ranking comes later.
+        # Stable fetch order; final presentation order comes from ranking.
         vehicles: List[Vehicle] = (
             query.order_by(Vehicle.price.asc(), Vehicle.id.asc()).all()
         )
     except SQLAlchemyError as exc:
         _rollback_and_raise(db, exc)
 
-    # Null-safe internal representation (does not mutate ORM / DB rows).
     candidates = [prepare_candidate(v) for v in vehicles]
-    total = len(candidates)
-    recommendations = [VehicleResponse.model_validate(c) for c in candidates]
+    total_eligible = len(candidates)
 
-    if total == 0:
+    if total_eligible == 0:
         return RecommendationResponse(
             success=True,
             status="no_matches",
-            message="No vehicles matched the provided requirements.",
+            message=_build_message(
+                total_eligible=0,
+                recommendations_count=0,
+                alternatives_count=0,
+                fewer_than_five_eligible=True,
+            ),
             total=0,
+            total_eligible=0,
+            recommendations_count=0,
+            alternatives_count=0,
+            fewer_than_five_eligible=True,
             recommendations=[],
+            alternatives=[],
             applied_filters=applied,
             preferences=preferences,
         )
 
+    scored = _score_candidates(candidates, requirements)
+    selection = rank_and_select(scored, requirements)
+
+    primary_items = [_to_recommendation_item(row) for row in selection["primary"]]
+    alternative_items = [
+        _to_recommendation_item(row) for row in selection["alternatives"]
+    ]
+    recommendations_count = len(primary_items)
+    alternatives_count = len(alternative_items)
+    fewer = bool(selection["fewer_than_five_eligible"])
+
     return RecommendationResponse(
         success=True,
         status="matches_found",
-        message=f"Found {total} vehicle(s) matching the provided requirements.",
-        total=total,
-        recommendations=recommendations,
+        message=_build_message(
+            total_eligible=total_eligible,
+            recommendations_count=recommendations_count,
+            alternatives_count=alternatives_count,
+            fewer_than_five_eligible=fewer,
+        ),
+        total=total_eligible,
+        total_eligible=total_eligible,
+        recommendations_count=recommendations_count,
+        alternatives_count=alternatives_count,
+        fewer_than_five_eligible=fewer,
+        recommendations=primary_items,
+        alternatives=alternative_items,
         applied_filters=applied,
         preferences=preferences,
     )

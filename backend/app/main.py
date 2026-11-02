@@ -50,6 +50,21 @@ app.include_router(vehicles.router)
 app.include_router(recommendations.router)
 
 
+def _json_safe_errors(errors: list) -> list:
+    """Make Pydantic/FastAPI error dicts JSON-serializable (ctx may hold exceptions)."""
+    safe: list = []
+    for err in errors:
+        item = dict(err)
+        ctx = item.get("ctx")
+        if isinstance(ctx, dict):
+            item["ctx"] = {
+                key: (str(value) if isinstance(value, BaseException) else value)
+                for key, value in ctx.items()
+            }
+        safe.append(item)
+    return safe
+
+
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(_: Request, exc: RequestValidationError):
     return JSONResponse(
@@ -57,7 +72,7 @@ async def validation_exception_handler(_: Request, exc: RequestValidationError):
         content={
             "success": False,
             "message": "Validation error",
-            "errors": exc.errors(),
+            "errors": _json_safe_errors(exc.errors()),
         },
     )
 

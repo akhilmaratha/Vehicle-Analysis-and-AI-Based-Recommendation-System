@@ -202,7 +202,12 @@ class TestGetRecommendationsService:
         assert result.success is True
         assert result.status == "matches_found"
         assert result.total == 2
+        assert result.total_eligible == 2
+        assert result.recommendations_count == 2
         assert len(result.recommendations) == 2
+        assert result.alternatives_count == 0
+        assert result.alternatives == []
+        assert result.fewer_than_five_eligible is True
         assert result.applied_filters.budget_max == 1_500_000
         assert result.applied_filters.fuel_type == "Petrol"
         assert result.preferences.priorities == []
@@ -221,7 +226,11 @@ class TestGetRecommendationsService:
         assert result.success is True
         assert result.status == "no_matches"
         assert result.total == 0
+        assert result.total_eligible == 0
+        assert result.recommendations_count == 0
         assert result.recommendations == []
+        assert result.alternatives == []
+        assert result.fewer_than_five_eligible is True
         assert result.applied_filters.vehicle_type == "Coupe"
         assert "No vehicles matched" in result.message
 
