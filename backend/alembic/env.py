@@ -8,7 +8,7 @@ from alembic import context
 # Avoid importing app.core.database.engine usage for migrations beyond URL binding.
 from app.core.config import get_settings
 from app.core.database import Base
-from app.models import vehicle  # noqa: F401
+from app.models import admin, vehicle  # noqa: F401
 
 config = context.config
 

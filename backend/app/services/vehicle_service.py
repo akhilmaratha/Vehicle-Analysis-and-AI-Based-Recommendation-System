@@ -6,7 +6,7 @@ import math
 from typing import Optional
 
 from fastapi import HTTPException, status
-from sqlalchemy import asc, desc, func
+from sqlalchemy import asc, desc, func, or_
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Query, Session
 
@@ -47,6 +47,7 @@ def _apply_filters(
     min_mileage: Optional[float] = None,
     max_mileage: Optional[float] = None,
     seating_capacity: Optional[int] = None,
+    search: Optional[str] = None,
 ) -> Query:
     if brand:
         query = query.filter(Vehicle.brand.ilike(brand.strip()))
@@ -66,6 +67,9 @@ def _apply_filters(
         query = query.filter(Vehicle.mileage <= max_mileage)
     if seating_capacity is not None:
         query = query.filter(Vehicle.seating_capacity == seating_capacity)
+    if search:
+        term = f"%{search.strip()}%"
+        query = query.filter(or_(Vehicle.brand.ilike(term), Vehicle.model.ilike(term)))
     return query
 
 
@@ -83,6 +87,7 @@ def get_vehicles(
     min_mileage: Optional[float] = None,
     max_mileage: Optional[float] = None,
     seating_capacity: Optional[int] = None,
+    search: Optional[str] = None,
     sort_by: SortByField = "created_at",
     sort_order: SortOrder = "desc",
 ) -> VehicleListResponse:
@@ -100,6 +105,7 @@ def get_vehicles(
             min_mileage=min_mileage,
             max_mileage=max_mileage,
             seating_capacity=seating_capacity,
+            search=search,
         )
 
         total = query.with_entities(func.count(Vehicle.id)).scalar() or 0

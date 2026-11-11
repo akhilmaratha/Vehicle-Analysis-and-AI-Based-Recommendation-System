@@ -88,6 +88,7 @@ async function request(path, options = {}) {
     method,
     headers: { ...headers },
     signal,
+    credentials: "include",
     ...rest,
   };
 
@@ -159,30 +160,62 @@ export function getVehicleById(id, options = {}) {
   return request(`/api/vehicles/${id}`, { method: "GET", ...options });
 }
 
-/** POST /api/vehicles */
+/** POST /api/admin/vehicles */
 export function createVehicle(data, options = {}) {
-  return request("/api/vehicles", {
+  return request("/api/admin/vehicles", {
     method: "POST",
     body: data,
     ...options,
   });
 }
 
-/** PUT /api/vehicles/{id} */
+/** PUT /api/admin/vehicles/{id} */
 export function updateVehicle(id, data, options = {}) {
-  return request(`/api/vehicles/${id}`, {
+  return request(`/api/admin/vehicles/${id}`, {
     method: "PUT",
     body: data,
     ...options,
   });
 }
 
-/** DELETE /api/vehicles/{id} — returns null on 204 */
+/** DELETE /api/admin/vehicles/{id} — returns null on 204 */
 export function deleteVehicle(id, options = {}) {
-  return request(`/api/vehicles/${id}`, {
+  return request(`/api/admin/vehicles/${id}`, {
     method: "DELETE",
     ...options,
   });
+}
+
+export function adminLogin(credentials, options = {}) {
+  return request("/api/admin/auth/login", {
+    method: "POST",
+    body: credentials,
+    ...options,
+  });
+}
+
+export function adminLogout(options = {}) {
+  return request("/api/admin/auth/logout", {
+    method: "POST",
+    ...options,
+  });
+}
+
+export function getCurrentAdmin(options = {}) {
+  return request("/api/admin/auth/me", { method: "GET", ...options });
+}
+
+export function getAdminDashboardStats(options = {}) {
+  return request("/api/admin/dashboard/stats", { method: "GET", ...options });
+}
+
+export function getAdminVehicles(params = {}, options = {}) {
+  const query = buildQueryString(params);
+  return request(`/api/admin/vehicles${query}`, { method: "GET", ...options });
+}
+
+export function getAdminVehicleById(id, options = {}) {
+  return request(`/api/admin/vehicles/${id}`, { method: "GET", ...options });
 }
 
 /**
@@ -192,6 +225,52 @@ export function deleteVehicle(id, options = {}) {
  */
 export function getRecommendations(payload, options = {}) {
   return request("/api/recommendations", {
+    method: "POST",
+    body: payload,
+    ...options,
+  });
+}
+
+/**
+ * POST /api/ai/extract-preferences
+ * @param {{ message: string, previous_preferences?: object }} payload
+ */
+export function extractPreferences(payload, options = {}) {
+  return request("/api/ai/extract-preferences", {
+    method: "POST",
+    body: payload,
+    ...options,
+  });
+}
+
+/**
+ * POST /api/ai/recommendations
+ * NL / follow-up / confirmed preferences → ranked results + explanations
+ * @param {{
+ *   message?: string,
+ *   preferences?: object,
+ *   previous_preferences?: object,
+ *   generate_explanations?: boolean,
+ * }} payload
+ */
+export function getAiRecommendations(payload, options = {}) {
+  return request("/api/ai/recommendations", {
+    method: "POST",
+    body: payload,
+    ...options,
+  });
+}
+
+/**
+ * POST /api/ai/explain
+ * @param {{
+ *   preferences: object,
+ *   recommendations?: object[],
+ *   alternatives?: object[],
+ * }} payload
+ */
+export function explainRecommendations(payload, options = {}) {
+  return request("/api/ai/explain", {
     method: "POST",
     body: payload,
     ...options,

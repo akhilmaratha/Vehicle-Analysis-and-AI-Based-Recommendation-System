@@ -9,7 +9,15 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 
 from app.core.config import get_settings
 from app.core.database import init_db
-from app.routes import health, recommendations, vehicles
+from app.routes import (
+    admin_auth,
+    admin_dashboard,
+    admin_vehicles,
+    ai,
+    health,
+    recommendations,
+    vehicles,
+)
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -48,6 +56,10 @@ app.add_middleware(
 app.include_router(health.router)
 app.include_router(vehicles.router)
 app.include_router(recommendations.router)
+app.include_router(ai.router)
+app.include_router(admin_auth.router)
+app.include_router(admin_dashboard.router)
+app.include_router(admin_vehicles.router)
 
 
 def _json_safe_errors(errors: list) -> list:

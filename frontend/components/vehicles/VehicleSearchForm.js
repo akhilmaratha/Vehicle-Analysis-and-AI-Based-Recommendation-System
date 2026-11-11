@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -22,46 +23,94 @@ const defaultValues = {
   vehicle_type: "SUV",
   minimum_mileage: "15",
   seating_capacity: "5",
-  safety_priority: "High",
-  mileage_priority: "High",
+  priority_mileage: true,
+  priority_safety: true,
+  priority_price: false,
+  priority_performance: false,
+  priority_comfort: false,
 };
 
-export function VehicleSearchForm({ onSubmit, message }) {
+/**
+ * Build Phase 3.1 RecommendationRequest-compatible payload.
+ * @param {Record<string, unknown>} values
+ */
+export function buildStructuredRecommendationPayload(values) {
+  const priorities = [];
+  if (values.priority_price) priorities.push("price");
+  if (values.priority_mileage) priorities.push("mileage");
+  if (values.priority_safety) priorities.push("safety");
+  if (values.priority_performance) priorities.push("performance");
+  if (values.priority_comfort) priorities.push("comfort");
+
+  const payload = {
+    budget: Number(values.budget),
+    fuel_type: values.fuel_type || undefined,
+    transmission: values.transmission || undefined,
+    vehicle_type: values.vehicle_type || undefined,
+    priorities,
+  };
+
+  const mileage = Number(values.minimum_mileage);
+  if (!Number.isNaN(mileage) && values.minimum_mileage !== "") {
+    payload.minimum_mileage = mileage;
+  }
+  const seats = Number(values.seating_capacity);
+  if (!Number.isNaN(seats) && values.seating_capacity !== "") {
+    payload.seating_capacity = seats;
+  }
+
+  return payload;
+}
+
+export function VehicleSearchForm({
+  onSubmit,
+  message,
+  disabled = false,
+  initialValues = null,
+}) {
+  const [values, setValues] = useState(() => ({
+    ...defaultValues,
+    ...(initialValues || {}),
+  }));
+
+  useEffect(() => {
+    if (!initialValues) return;
+    const timer = window.setTimeout(() => {
+      setValues((prev) => ({ ...prev, ...initialValues }));
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [initialValues]);
+
+  function update(key, value) {
+    setValues((prev) => ({ ...prev, [key]: value }));
+  }
+
   function handleSubmit(event) {
     event.preventDefault();
-    const formData = new FormData(event.currentTarget);
-    const values = {
-      budget: Number(formData.get("budget")),
-      fuel_type: formData.get("fuel_type"),
-      transmission: formData.get("transmission"),
-      vehicle_type: formData.get("vehicle_type"),
-      minimum_mileage: Number(formData.get("minimum_mileage")),
-      seating_capacity: Number(formData.get("seating_capacity")),
-      safety_priority: formData.get("safety_priority"),
-      mileage_priority: formData.get("mileage_priority"),
-    };
-    onSubmit?.(values);
+    onSubmit?.(buildStructuredRecommendationPayload(values));
   }
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Find Your Vehicle</CardTitle>
+        <CardTitle>Structured preference form</CardTitle>
         <CardDescription>
-          Enter your preferences. AI recommendations will be wired in a later
-          phase.
+          Fallback when you prefer filters over natural language. Uses the same
+          recommendation engine (no invented results).
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit}>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="grid gap-2">
-            <Label htmlFor="budget">Budget (₹)</Label>
+            <Label htmlFor="budget">Budget max (₹)</Label>
             <Input
               id="budget"
               name="budget"
               type="number"
-              defaultValue={defaultValues.budget}
+              value={values.budget}
+              onChange={(e) => update("budget", e.target.value)}
               required
+              disabled={disabled}
             />
           </div>
           <div className="grid gap-2">
@@ -69,11 +118,14 @@ export function VehicleSearchForm({ onSubmit, message }) {
             <select
               id="fuel_type"
               name="fuel_type"
-              defaultValue={defaultValues.fuel_type}
+              value={values.fuel_type}
+              onChange={(e) => update("fuel_type", e.target.value)}
               className={selectClassName}
+              disabled={disabled}
             >
               <option>Petrol</option>
               <option>Diesel</option>
+              <option>CNG</option>
               <option>Hybrid</option>
               <option>Electric</option>
             </select>
@@ -83,8 +135,10 @@ export function VehicleSearchForm({ onSubmit, message }) {
             <select
               id="transmission"
               name="transmission"
-              defaultValue={defaultValues.transmission}
+              value={values.transmission}
+              onChange={(e) => update("transmission", e.target.value)}
               className={selectClassName}
+              disabled={disabled}
             >
               <option>Automatic</option>
               <option>Manual</option>
@@ -95,23 +149,28 @@ export function VehicleSearchForm({ onSubmit, message }) {
             <select
               id="vehicle_type"
               name="vehicle_type"
-              defaultValue={defaultValues.vehicle_type}
+              value={values.vehicle_type}
+              onChange={(e) => update("vehicle_type", e.target.value)}
               className={selectClassName}
+              disabled={disabled}
             >
               <option>SUV</option>
               <option>Sedan</option>
               <option>Hatchback</option>
               <option>MUV</option>
+              <option>Coupe</option>
+              <option>Other</option>
             </select>
           </div>
           <div className="grid gap-2">
-            <Label htmlFor="minimum_mileage">Minimum Mileage (km/l)</Label>
+            <Label htmlFor="minimum_mileage">Preferred mileage (km/l)</Label>
             <Input
               id="minimum_mileage"
               name="minimum_mileage"
               type="number"
-              defaultValue={defaultValues.minimum_mileage}
-              required
+              value={values.minimum_mileage}
+              onChange={(e) => update("minimum_mileage", e.target.value)}
+              disabled={disabled}
             />
           </div>
           <div className="grid gap-2">
@@ -120,39 +179,36 @@ export function VehicleSearchForm({ onSubmit, message }) {
               id="seating_capacity"
               name="seating_capacity"
               type="number"
-              defaultValue={defaultValues.seating_capacity}
-              required
+              value={values.seating_capacity}
+              onChange={(e) => update("seating_capacity", e.target.value)}
+              disabled={disabled}
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="safety_priority">Safety Priority</Label>
-            <select
-              id="safety_priority"
-              name="safety_priority"
-              defaultValue={defaultValues.safety_priority}
-              className={selectClassName}
-            >
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="mileage_priority">Mileage Priority</Label>
-            <select
-              id="mileage_priority"
-              name="mileage_priority"
-              defaultValue={defaultValues.mileage_priority}
-              className={selectClassName}
-            >
-              <option>High</option>
-              <option>Medium</option>
-              <option>Low</option>
-            </select>
+          <div className="grid gap-2 sm:col-span-2">
+            <Label>Priorities</Label>
+            <div className="flex flex-wrap gap-3 text-sm">
+              {[
+                ["priority_mileage", "Mileage"],
+                ["priority_safety", "Safety"],
+                ["priority_price", "Price"],
+                ["priority_performance", "Performance"],
+                ["priority_comfort", "Comfort"],
+              ].map(([key, label]) => (
+                <label key={key} className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(values[key])}
+                    onChange={(e) => update(key, e.target.checked)}
+                    disabled={disabled}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
           </div>
         </CardContent>
         <CardFooter className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-          <Button type="submit" size="lg">
+          <Button type="submit" size="lg" disabled={disabled}>
             Find My Vehicle
           </Button>
           {message ? (

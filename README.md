@@ -17,7 +17,7 @@ Next.js (App Router)
         │
         ├── Vehicle Service
         ├── Recommendation Service (stub)
-        └── AI Service (future)
+        └── AI Service (Gemini: extract prefs + explain; never ranks)
         │
         ↓
     PostgreSQL

@@ -1,6 +1,6 @@
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Path, Query, Response, status
+from fastapi import APIRouter, Depends, Path, Query
 from sqlalchemy.orm import Session
 
 from app.core.database import get_db
@@ -9,34 +9,13 @@ from app.schemas.vehicle import (
     SortByField,
     SortOrder,
     TransmissionType,
-    VehicleCreate,
     VehicleListResponse,
     VehicleResponse,
     VehicleType,
-    VehicleUpdate,
 )
 from app.services import vehicle_service
 
 router = APIRouter(prefix="/api/vehicles", tags=["vehicles"])
-
-
-@router.post(
-    "",
-    response_model=VehicleResponse,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create a vehicle",
-    responses={
-        201: {"description": "Vehicle created"},
-        422: {"description": "Validation error"},
-        500: {"description": "Database error"},
-    },
-)
-async def create_vehicle(
-    payload: VehicleCreate,
-    db: Session = Depends(get_db),
-) -> VehicleResponse:
-    """Persist a new vehicle to PostgreSQL and return the created record."""
-    return vehicle_service.create_vehicle(db, payload)
 
 
 @router.get(
@@ -131,40 +110,3 @@ async def get_vehicle(
     return vehicle_service.get_vehicle_by_id(db, vehicle_id)
 
 
-@router.put(
-    "/{vehicle_id}",
-    response_model=VehicleResponse,
-    summary="Update a vehicle",
-    responses={
-        200: {"description": "Vehicle updated"},
-        404: {"description": "Vehicle not found"},
-        422: {"description": "Validation error"},
-        500: {"description": "Database error"},
-    },
-)
-async def update_vehicle(
-    payload: VehicleUpdate,
-    vehicle_id: int = Path(..., ge=1, description="Vehicle primary key"),
-    db: Session = Depends(get_db),
-) -> VehicleResponse:
-    """Partially update a vehicle (only fields present in the body are applied)."""
-    return vehicle_service.update_vehicle(db, vehicle_id, payload)
-
-
-@router.delete(
-    "/{vehicle_id}",
-    status_code=status.HTTP_204_NO_CONTENT,
-    summary="Delete a vehicle",
-    responses={
-        204: {"description": "Vehicle deleted"},
-        404: {"description": "Vehicle not found"},
-        500: {"description": "Database error"},
-    },
-)
-async def delete_vehicle(
-    vehicle_id: int = Path(..., ge=1, description="Vehicle primary key"),
-    db: Session = Depends(get_db),
-) -> Response:
-    """Delete a vehicle by ID. Returns 204 with an empty body on success."""
-    vehicle_service.delete_vehicle(db, vehicle_id)
-    return Response(status_code=status.HTTP_204_NO_CONTENT)

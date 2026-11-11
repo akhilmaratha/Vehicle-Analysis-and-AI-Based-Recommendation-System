@@ -40,7 +40,12 @@ uvicorn app.main:app --reload
 | POST | `/api/vehicles` | Create vehicle |
 | PUT | `/api/vehicles/{id}` | Update vehicle |
 | DELETE | `/api/vehicles/{id}` | Delete vehicle |
-| POST | `/api/recommendations` | Recommendation stub |
+| POST | `/api/recommendations` | Structured preferences → filter/score/rank (no Gemini) |
+| POST | `/api/ai/extract-preferences` | Natural language → validated preferences |
+| POST | `/api/ai/recommendations` | NL / follow-up / confirmed prefs → Phase 3 pipeline + explanations |
+| POST | `/api/ai/explain` | Fact-grounded explanations for already-ranked results |
+
+Set `GEMINI_API_KEY`, optional `GEMINI_MODEL` (default `gemini-3.5-flash-lite`), and `GEMINI_TIMEOUT_SECONDS` in `.env`. Keys stay on the backend only.
 
 ## Database migrations
 
@@ -63,6 +68,6 @@ See `scripts/README.md`. Sample data is for demos only.
 
 ## Notes
 
-- `GEMINI_API_KEY` is reserved for a later phase.
-- Recommendation ranking with scikit-learn is not implemented yet.
+- Core ranking (`POST /api/recommendations`) does not require Gemini.
+- Gemini is used only for preference extraction, follow-up merge, and explanations.
 - Vehicle list/get are PostgreSQL-backed only (no in-memory placeholders).

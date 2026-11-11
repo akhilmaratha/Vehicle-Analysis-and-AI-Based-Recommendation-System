@@ -34,7 +34,7 @@ def init_db() -> None:
     Settings.AUTO_CREATE_TABLES is True (local bootstrap / legacy). Prefer:
         alembic upgrade head
     """
-    from app.models import vehicle  # noqa: F401
+    from app.models import admin, vehicle  # noqa: F401
 
     if not settings.AUTO_CREATE_TABLES:
         return
