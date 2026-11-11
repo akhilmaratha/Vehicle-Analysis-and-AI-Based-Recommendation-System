@@ -1,21 +1,35 @@
 "use client";
 
 import { useState } from "react";
-import { Filter, X } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { VehicleSearch } from "@/components/vehicles/VehicleSearch";
+import { ChoiceChips } from "@/components/forms/ChoiceChips";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import { FUEL_TYPES, TRANSMISSIONS, VEHICLE_TYPES } from "@/lib/vehicle-options";
 import { cn } from "@/lib/utils";
 
-const selectClassName =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50";
+const FILTER_KEYS = [
+  "brand",
+  "fuel_type",
+  "transmission",
+  "vehicle_type",
+  "min_price",
+  "max_price",
+  "min_mileage",
+  "max_mileage",
+  "seating_capacity",
+];
 
 /**
  * Validate filter draft against backend constraints.
@@ -94,6 +108,10 @@ export function validateVehicleFilters(filters = {}) {
   };
 }
 
+export function countActiveFilters(filters = {}) {
+  return FILTER_KEYS.filter((key) => Boolean(filters[key])).length;
+}
+
 function FieldError({ id, message }) {
   if (!message) return null;
   return (
@@ -103,9 +121,140 @@ function FieldError({ id, message }) {
   );
 }
 
+function FilterGroup({ title, children }) {
+  return (
+    <fieldset className="space-y-3">
+      <legend className="mb-3 font-heading text-sm font-bold text-foreground">
+        {title}
+      </legend>
+      {children}
+    </fieldset>
+  );
+}
+
+function RangeInputs({ idPrefix, minKey, maxKey, filters, update, errors, unit, placeholders, step }) {
+  return (
+    <div className="space-y-2">
+      <div className="grid grid-cols-2 gap-2">
+        {[
+          { key: minKey, label: "Min", placeholder: placeholders[0] },
+          { key: maxKey, label: "Max", placeholder: placeholders[1] },
+        ].map((field) => {
+          const id = `${idPrefix}-${field.key}`;
+          return (
+            <div key={field.key} className="grid gap-1.5">
+              <Label htmlFor={id} className="text-xs font-medium text-muted-foreground">
+                {field.label} {unit}
+              </Label>
+              <Input
+                id={id}
+                type="number"
+                min="0"
+                step={step}
+                inputMode="decimal"
+                placeholder={field.placeholder}
+                value={filters[field.key] || ""}
+                onChange={(e) => update(field.key, e.target.value)}
+                aria-invalid={Boolean(errors[field.key]) || undefined}
+                aria-describedby={errors[field.key] ? `${id}-error` : undefined}
+              />
+            </div>
+          );
+        })}
+      </div>
+      <FieldError id={`${idPrefix}-${minKey}-error`} message={errors[minKey]} />
+      {errors[maxKey] && errors[maxKey] !== errors[minKey] ? (
+        <FieldError id={`${idPrefix}-${maxKey}-error`} message={errors[maxKey]} />
+      ) : null}
+    </div>
+  );
+}
+
+function FilterFields({ filters, update, errors, idPrefix }) {
+  return (
+    <div className="space-y-6">
+      <VehicleSearch
+        id={`${idPrefix}-brand`}
+        value={filters.brand || ""}
+        onChange={(value) => update("brand", value)}
+      />
+      <Separator />
+      <FilterGroup title="Fuel type">
+        <ChoiceChips
+          label="Fuel type"
+          options={FUEL_TYPES}
+          value={filters.fuel_type || ""}
+          onChange={(value) => update("fuel_type", value)}
+        />
+      </FilterGroup>
+      <FilterGroup title="Transmission">
+        <ChoiceChips
+          label="Transmission"
+          options={TRANSMISSIONS}
+          value={filters.transmission || ""}
+          onChange={(value) => update("transmission", value)}
+        />
+      </FilterGroup>
+      <FilterGroup title="Vehicle type">
+        <ChoiceChips
+          label="Vehicle type"
+          options={VEHICLE_TYPES}
+          value={filters.vehicle_type || ""}
+          onChange={(value) => update("vehicle_type", value)}
+        />
+      </FilterGroup>
+      <Separator />
+      <FilterGroup title="Price">
+        <RangeInputs
+          idPrefix={idPrefix}
+          minKey="min_price"
+          maxKey="max_price"
+          unit="(₹)"
+          step="10000"
+          placeholders={["500000", "1500000"]}
+          filters={filters}
+          update={update}
+          errors={errors}
+        />
+      </FilterGroup>
+      <FilterGroup title="Mileage">
+        <RangeInputs
+          idPrefix={idPrefix}
+          minKey="min_mileage"
+          maxKey="max_mileage"
+          unit="(km/l)"
+          step="0.1"
+          placeholders={["15", "30"]}
+          filters={filters}
+          update={update}
+          errors={errors}
+        />
+      </FilterGroup>
+      <div className="grid gap-2">
+        <Label htmlFor={`${idPrefix}-seating`} className="font-heading font-bold">
+          Seating capacity
+        </Label>
+        <Input
+          id={`${idPrefix}-seating`}
+          type="number"
+          min="1"
+          step="1"
+          inputMode="numeric"
+          placeholder="Exact number of seats"
+          value={filters.seating_capacity || ""}
+          onChange={(e) => update("seating_capacity", e.target.value)}
+          aria-invalid={Boolean(errors.seating_capacity) || undefined}
+          aria-describedby={errors.seating_capacity ? `${idPrefix}-seating-error` : undefined}
+        />
+        <FieldError id={`${idPrefix}-seating-error`} message={errors.seating_capacity} />
+      </div>
+    </div>
+  );
+}
+
 /**
  * Advanced filters matching GET /api/vehicles query params.
- * Desktop: always-visible panel. Mobile: collapsible drawer with Apply/Reset.
+ * Desktop: sticky sidebar panel. Mobile: Sheet with Apply / Clear.
  */
 export function VehicleFilters({
   filters,
@@ -116,6 +265,7 @@ export function VehicleFilters({
   className,
   mobileOpen,
   onMobileOpenChange,
+  appliedCount,
 }) {
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = typeof mobileOpen === "boolean";
@@ -138,238 +288,80 @@ export function VehicleFilters({
     setOpen(false);
   }
 
-  function handleReset() {
-    onReset?.();
-  }
-
-  const form = (
-    <div className="space-y-4">
-      <VehicleSearch
-        value={filters.brand || ""}
-        onChange={(value) => update("brand", value)}
-      />
-
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
-        <div className="grid gap-2">
-          <Label htmlFor="filter-fuel">Fuel type</Label>
-          <select
-            id="filter-fuel"
-            className={selectClassName}
-            value={filters.fuel_type || ""}
-            onChange={(e) => update("fuel_type", e.target.value)}
-          >
-            <option value="">Any</option>
-            <option value="Petrol">Petrol</option>
-            <option value="Diesel">Diesel</option>
-            <option value="CNG">CNG</option>
-            <option value="Electric">Electric</option>
-            <option value="Hybrid">Hybrid</option>
-          </select>
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="filter-transmission">Transmission</Label>
-          <select
-            id="filter-transmission"
-            className={selectClassName}
-            value={filters.transmission || ""}
-            onChange={(e) => update("transmission", e.target.value)}
-          >
-            <option value="">Any</option>
-            <option value="Manual">Manual</option>
-            <option value="Automatic">Automatic</option>
-          </select>
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="filter-type">Vehicle type</Label>
-          <select
-            id="filter-type"
-            className={selectClassName}
-            value={filters.vehicle_type || ""}
-            onChange={(e) => update("vehicle_type", e.target.value)}
-          >
-            <option value="">Any</option>
-            <option value="Hatchback">Hatchback</option>
-            <option value="Sedan">Sedan</option>
-            <option value="SUV">SUV</option>
-            <option value="MUV">MUV</option>
-            <option value="Coupe">Coupe</option>
-            <option value="Other">Other</option>
-          </select>
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="filter-min-price">Min price (₹)</Label>
-          <Input
-            id="filter-min-price"
-            type="number"
-            min="0"
-            inputMode="decimal"
-            placeholder="e.g. 500000"
-            value={filters.min_price || ""}
-            onChange={(e) => update("min_price", e.target.value)}
-            aria-invalid={Boolean(errors.min_price)}
-            aria-describedby={errors.min_price ? "err-min-price" : undefined}
-          />
-          <FieldError id="err-min-price" message={errors.min_price} />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="filter-max-price">Max price (₹)</Label>
-          <Input
-            id="filter-max-price"
-            type="number"
-            min="0"
-            inputMode="decimal"
-            placeholder="e.g. 1500000"
-            value={filters.max_price || ""}
-            onChange={(e) => update("max_price", e.target.value)}
-            aria-invalid={Boolean(errors.max_price)}
-            aria-describedby={errors.max_price ? "err-max-price" : undefined}
-          />
-          <FieldError id="err-max-price" message={errors.max_price} />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="filter-min-mileage">Min mileage</Label>
-          <Input
-            id="filter-min-mileage"
-            type="number"
-            min="0"
-            step="0.1"
-            inputMode="decimal"
-            placeholder="e.g. 15"
-            value={filters.min_mileage || ""}
-            onChange={(e) => update("min_mileage", e.target.value)}
-            aria-invalid={Boolean(errors.min_mileage)}
-            aria-describedby={
-              errors.min_mileage ? "err-min-mileage" : undefined
-            }
-          />
-          <FieldError id="err-min-mileage" message={errors.min_mileage} />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="filter-max-mileage">Max mileage</Label>
-          <Input
-            id="filter-max-mileage"
-            type="number"
-            min="0"
-            step="0.1"
-            inputMode="decimal"
-            placeholder="e.g. 30"
-            value={filters.max_mileage || ""}
-            onChange={(e) => update("max_mileage", e.target.value)}
-            aria-invalid={Boolean(errors.max_mileage)}
-            aria-describedby={
-              errors.max_mileage ? "err-max-mileage" : undefined
-            }
-          />
-          <FieldError id="err-max-mileage" message={errors.max_mileage} />
-        </div>
-
-        <div className="grid gap-2">
-          <Label htmlFor="filter-seating">Seating capacity</Label>
-          <Input
-            id="filter-seating"
-            type="number"
-            min="1"
-            step="1"
-            inputMode="numeric"
-            placeholder="Exact seats"
-            value={filters.seating_capacity || ""}
-            onChange={(e) => update("seating_capacity", e.target.value)}
-            aria-invalid={Boolean(errors.seating_capacity)}
-            aria-describedby={
-              errors.seating_capacity ? "err-seating" : undefined
-            }
-          />
-          <FieldError id="err-seating" message={errors.seating_capacity} />
-        </div>
-      </div>
-
-      <div className="flex flex-wrap gap-2 pt-1">
-        <Button
-          type="button"
-          className="lg:hidden"
-          onClick={handleApply}
-        >
-          Apply Filters
-        </Button>
-        {typeof onReset === "function" ? (
-          <Button type="button" variant="outline" onClick={handleReset}>
-            Reset All
-          </Button>
-        ) : null}
-      </div>
-    </div>
-  );
+  const activeCount = appliedCount ?? countActiveFilters(filters);
 
   return (
     <div className={cn(className)}>
-      {/* Mobile trigger */}
-      <div className="mb-4 lg:hidden">
+      <div className="lg:hidden">
         <Button
           type="button"
           variant="outline"
-          className="w-full gap-2"
+          className="w-full justify-between"
           aria-expanded={open}
-          aria-controls="vehicle-filters-panel"
-          onClick={() => setOpen(!open)}
+          onClick={() => setOpen(true)}
         >
-          <Filter className="size-4" aria-hidden="true" />
-          {open ? "Hide Filters" : "Show Filters"}
+          <span className="inline-flex items-center gap-2">
+            <SlidersHorizontal className="size-4" aria-hidden="true" />
+            Filters
+          </span>
+          {activeCount > 0 ? (
+            <span className="rounded-md bg-primary px-1.5 py-0.5 text-xs font-semibold text-primary-foreground tabular">
+              {activeCount}
+            </span>
+          ) : null}
         </Button>
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetContent side="left" className="w-[92%] max-w-sm gap-0 bg-background p-0">
+            <SheetHeader className="border-b border-border px-5 py-4">
+              <SheetTitle className="font-heading text-lg font-bold">Filters</SheetTitle>
+              <SheetDescription>Changes apply when you tap Show results.</SheetDescription>
+            </SheetHeader>
+            <div className="flex-1 overflow-y-auto px-5 py-5">
+              <FilterFields
+                filters={filters}
+                update={update}
+                errors={errors}
+                idPrefix="mobile-filter"
+              />
+            </div>
+            <SheetFooter className="flex-row border-t border-border bg-card px-5 py-4">
+              {typeof onReset === "function" ? (
+                <Button type="button" variant="outline" className="flex-1" onClick={onReset}>
+                  Clear all
+                </Button>
+              ) : null}
+              <Button type="button" className="flex-1" onClick={handleApply}>
+                Show results
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
       </div>
 
-      {/* Mobile drawer overlay */}
-      {open ? (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-          aria-hidden="true"
-          onClick={() => setOpen(false)}
-        />
-      ) : null}
-
-      <Card
-        id="vehicle-filters-panel"
-        className={cn(
-          "border-border/80 shadow-sm",
-          "lg:static lg:z-auto lg:block lg:translate-x-0",
-          open
-            ? "fixed inset-y-0 left-0 z-50 flex w-[min(100%,22rem)] translate-x-0 flex-col overflow-y-auto rounded-none lg:rounded-xl"
-            : "hidden lg:block"
-        )}
-      >
-        <CardHeader className="flex flex-row items-center justify-between gap-3 space-y-0 pb-4">
-          <CardTitle className="text-base">Filters</CardTitle>
-          <div className="flex items-center gap-1">
-            {typeof onReset === "function" ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                className="hidden lg:inline-flex"
-                onClick={handleReset}
-              >
-                Reset
-              </Button>
-            ) : null}
+      <div className="hidden rounded-xl border border-border bg-card lg:block">
+        <div className="flex items-center justify-between gap-3 border-b border-border px-5 py-4">
+          <h2 className="font-heading text-base font-bold">Filters</h2>
+          {typeof onReset === "function" ? (
             <Button
               type="button"
               variant="ghost"
-              size="icon-sm"
-              className="lg:hidden"
-              onClick={() => setOpen(false)}
-              aria-label="Close filters"
+              size="sm"
+              className="-mr-2 text-muted-foreground"
+              onClick={onReset}
             >
-              <X className="size-4" />
+              Clear all
             </Button>
-          </div>
-        </CardHeader>
-        <CardContent>{form}</CardContent>
-      </Card>
+          ) : null}
+        </div>
+        <div className="px-5 py-5">
+          <FilterFields
+            filters={filters}
+            update={update}
+            errors={errors}
+            idPrefix="filter"
+          />
+        </div>
+      </div>
     </div>
   );
 }

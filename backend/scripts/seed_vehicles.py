@@ -6,13 +6,19 @@ and must not be treated as verified manufacturer facts.
 
 Usage (from backend/ with venv active):
     python scripts/seed_vehicles.py
+    python scripts/seed_vehicles.py --replace
 
-Idempotent: skips rows that already exist for the same brand + model + variant
-(case-insensitive). Does not delete existing rows. Does not run on app startup.
+Idempotent by default: skips rows that already exist for the same
+brand + model + variant (case-insensitive).
+
+With --replace: deletes existing vehicles that match brand+model+variant
+keys from the JSON file, then inserts fresh rows (updates image_url etc.).
+Does not run on app startup.
 """
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -53,20 +59,38 @@ def load_records() -> list[dict]:
     return data
 
 
-def seed() -> int:
+def _delete_matching(db, keys: set[tuple[str, str, str]]) -> int:
+    """Delete DB vehicles whose normalized brand/model/variant is in keys."""
+    if not keys:
+        return 0
+    deleted = 0
+    rows = db.query(Vehicle).all()
+    for row in rows:
+        key = _normalize_key(row.brand, row.model, row.variant)
+        if key in keys:
+            db.delete(row)
+            deleted += 1
+    return deleted
+
+
+def seed(*, replace: bool = False) -> int:
     print("Loading demo dataset from:", DATA_FILE)
     print("NOTE: Records are demonstration/sample data, not verified specs.")
     raw_records = load_records()
     print(f"Records in file: {len(raw_records)}")
+    if replace:
+        print("Mode: --replace (delete matching brand/model/variant, then insert)")
 
     inserted = 0
     skipped = 0
     failed = 0
+    deleted = 0
 
     db = SessionLocal()
     try:
-        existing = _existing_keys(db)
         seen_in_file: set[tuple[str, str, str]] = set()
+        file_keys: set[tuple[str, str, str]] = set()
+        validated: list[tuple[int, VehicleCreate, tuple[str, str, str]]] = []
 
         for index, raw in enumerate(raw_records, start=1):
             try:
@@ -85,7 +109,17 @@ def seed() -> int:
                 )
                 continue
             seen_in_file.add(key)
+            file_keys.add(key)
+            validated.append((index, payload, key))
 
+        if replace:
+            deleted = _delete_matching(db, file_keys)
+            print(f"Deleted matching rows: {deleted}")
+            db.flush()
+
+        existing = _existing_keys(db)
+
+        for index, payload, key in validated:
             if key in existing:
                 skipped += 1
                 print(
@@ -116,6 +150,8 @@ def seed() -> int:
         db.close()
 
     print("---")
+    if replace:
+        print(f"Deleted:  {deleted}")
     print(f"Inserted: {inserted}")
     print(f"Skipped:  {skipped}")
     print(f"Failed:   {failed}")
@@ -123,5 +159,16 @@ def seed() -> int:
     return 0 if failed == 0 else 2
 
 
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Seed demo vehicles into PostgreSQL")
+    parser.add_argument(
+        "--replace",
+        action="store_true",
+        help="Delete matching brand/model/variant rows from the DB, then insert from JSON",
+    )
+    args = parser.parse_args(argv)
+    return seed(replace=args.replace)
+
+
 if __name__ == "__main__":
-    raise SystemExit(seed())
+    raise SystemExit(main())

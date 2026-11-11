@@ -16,11 +16,12 @@ router = APIRouter(prefix="/api/admin/auth", tags=["admin-auth"])
 def _set_admin_cookie(response: Response, token: str) -> None:
     settings = get_settings()
     max_age = settings.JWT_EXPIRE_MINUTES * 60
+    # Use max_age only. Do not pass a relative seconds value as expires —
+    # and keep SameSite=lax for same-site localhost:3000 → localhost:8000.
     response.set_cookie(
         key=settings.ADMIN_COOKIE_NAME,
         value=token,
         max_age=max_age,
-        expires=max_age,
         httponly=True,
         secure=settings.ADMIN_COOKIE_SECURE,
         samesite=settings.ADMIN_COOKIE_SAMESITE,

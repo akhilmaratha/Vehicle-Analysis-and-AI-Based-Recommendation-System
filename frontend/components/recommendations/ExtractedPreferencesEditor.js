@@ -1,22 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { MessageCircleQuestion } from "lucide-react";
+import { FieldSelect } from "@/components/forms/FieldSelect";
+import { ChoiceChips } from "@/components/forms/ChoiceChips";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { FUEL_TYPES, TRANSMISSIONS, VEHICLE_TYPES } from "@/lib/vehicle-options";
 
-const selectClassName =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50";
-
-const PRIORITY_OPTIONS = ["price", "mileage", "safety", "performance", "comfort"];
+const PRIORITY_OPTIONS = [
+  { value: "price", label: "Price" },
+  { value: "mileage", label: "Mileage" },
+  { value: "safety", label: "Safety" },
+  { value: "performance", label: "Performance" },
+  { value: "comfort", label: "Comfort" },
+];
 
 function emptyForm() {
   return {
@@ -74,14 +73,76 @@ function formToPayload(form) {
   return payload;
 }
 
+function validateForm(form) {
+  const errors = {};
+  const min = form.budget_min === "" ? null : Number(form.budget_min);
+  const max = form.budget_max === "" ? null : Number(form.budget_max);
+  if (min != null && (Number.isNaN(min) || min < 0)) errors.budget_min = "Enter a positive amount.";
+  if (max != null && (Number.isNaN(max) || max <= 0)) errors.budget_max = "Enter an amount above zero.";
+  if (min != null && max != null && !errors.budget_min && !errors.budget_max && min > max) {
+    errors.budget_max = "Maximum should be at least the minimum.";
+  }
+  const safety = form.preferred_safety_rating === "" ? null : Number(form.preferred_safety_rating);
+  if (safety != null && (Number.isNaN(safety) || safety < 0 || safety > 5)) {
+    errors.preferred_safety_rating = "Use a rating between 0 and 5.";
+  }
+  const seats = form.seating_capacity === "" ? null : Number(form.seating_capacity);
+  if (seats != null && (!Number.isInteger(seats) || seats < 1)) {
+    errors.seating_capacity = "Use a whole number of seats.";
+  }
+  return errors;
+}
+
+function NumberField({ id, label, value, onChange, error, disabled, hint, ...props }) {
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor={id}>{label}</Label>
+      <Input
+        id={id}
+        type="number"
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        disabled={disabled}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : hint ? `${id}-hint` : undefined}
+        {...props}
+      />
+      {error ? (
+        <p id={`${id}-error`} className="text-xs text-destructive" role="alert">
+          {error}
+        </p>
+      ) : hint ? (
+        <p id={`${id}-hint`} className="text-xs text-muted-foreground">
+          {hint}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function Section({ title, children }) {
+  return (
+    <fieldset className="grid gap-4 border-t border-border pt-6 first:border-0 first:pt-0 md:grid-cols-[160px_minmax(0,1fr)] md:gap-8">
+      <legend className="sr-only">{title}</legend>
+      <p className="font-heading text-sm font-bold" aria-hidden="true">
+        {title}
+      </p>
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>
+    </fieldset>
+  );
+}
+
 export function ExtractedPreferencesEditor({
   preferences,
   clarificationQuestions = [],
+  statusMessage,
   onConfirm,
   onCancel,
   disabled = false,
 }) {
   const [form, setForm] = useState(() => prefsToForm(preferences));
+  const [errors, setErrors] = useState({});
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -92,184 +153,168 @@ export function ExtractedPreferencesEditor({
 
   function updateField(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  function togglePriority(name) {
-    setForm((prev) => {
-      const set = new Set(prev.priorities || []);
-      if (set.has(name)) set.delete(name);
-      else set.add(name);
-      return { ...prev, priorities: [...set] };
-    });
+    if (errors[key]) setErrors((prev) => ({ ...prev, [key]: undefined }));
   }
 
   function handleSubmit(event) {
     event.preventDefault();
+    const nextErrors = validateForm(form);
+    const hasErrors = Object.values(nextErrors).some(Boolean);
+    setErrors(nextErrors);
+    if (hasErrors) return;
     onConfirm?.(formToPayload(form));
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Confirm preferences</CardTitle>
-        <CardDescription>
-          Review and edit the extracted preferences, then run recommendations.
-        </CardDescription>
-      </CardHeader>
+    <form onSubmit={handleSubmit} className="rounded-xl border border-border bg-card" noValidate>
+      <div className="space-y-1.5 border-b border-border p-5 sm:px-7 sm:py-6">
+        <h2 className="font-heading text-lg font-bold">Is this right?</h2>
+        <p className="text-sm text-muted-foreground">
+          {statusMessage ||
+            "Here is what we understood. Adjust anything that is off, then we will rank vehicles for you."}
+        </p>
+      </div>
+
       {clarificationQuestions.length > 0 ? (
-        <CardContent className="space-y-2 border-b pb-4">
-          <p className="text-sm font-medium">Clarification needed</p>
-          <ul className="list-disc space-y-1 pl-5 text-sm text-muted-foreground">
-            {clarificationQuestions.map((q) => (
-              <li key={q}>{q}</li>
-            ))}
-          </ul>
-        </CardContent>
+        <div className="mx-5 mt-5 flex gap-3 rounded-lg bg-sage px-4 py-3.5 sm:mx-7">
+          <MessageCircleQuestion className="mt-0.5 size-4 shrink-0 text-primary" aria-hidden="true" />
+          <div className="space-y-1.5">
+            <p className="text-sm font-semibold text-primary">A few details would help</p>
+            <ul className="space-y-1 text-sm text-foreground/80">
+              {clarificationQuestions.map((q) => (
+                <li key={q}>{q}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
       ) : null}
-      <form onSubmit={handleSubmit}>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="grid gap-2">
-            <Label htmlFor="edit-budget-min">Budget min (₹)</Label>
-            <Input
-              id="edit-budget-min"
-              type="number"
-              value={form.budget_min}
-              onChange={(e) => updateField("budget_min", e.target.value)}
-              disabled={disabled}
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-budget-max">Budget max (₹)</Label>
-            <Input
-              id="edit-budget-max"
-              type="number"
-              value={form.budget_max}
-              onChange={(e) => updateField("budget_max", e.target.value)}
-              disabled={disabled}
-            />
-          </div>
+
+      <div className="space-y-6 p-5 sm:p-7">
+        <Section title="Budget">
+          <NumberField
+            id="edit-budget-min"
+            label="Minimum (₹)"
+            value={form.budget_min}
+            onChange={(v) => updateField("budget_min", v)}
+            error={errors.budget_min}
+            disabled={disabled}
+            min="0"
+            step="10000"
+            placeholder="No minimum"
+          />
+          <NumberField
+            id="edit-budget-max"
+            label="Maximum (₹)"
+            value={form.budget_max}
+            onChange={(v) => updateField("budget_max", v)}
+            error={errors.budget_max}
+            disabled={disabled}
+            min="0"
+            step="10000"
+            placeholder="No maximum"
+          />
+        </Section>
+
+        <Section title="Vehicle">
           <div className="grid gap-2">
             <Label htmlFor="edit-vehicle-type">Vehicle type</Label>
-            <select
+            <FieldSelect
               id="edit-vehicle-type"
-              className={selectClassName}
               value={form.vehicle_type}
-              onChange={(e) => updateField("vehicle_type", e.target.value)}
+              onChange={(v) => updateField("vehicle_type", v)}
+              options={VEHICLE_TYPES}
+              anyLabel="Any type"
               disabled={disabled}
-            >
-              <option value="">Any</option>
-              <option>Hatchback</option>
-              <option>Sedan</option>
-              <option>SUV</option>
-              <option>MUV</option>
-              <option>Coupe</option>
-              <option>Other</option>
-            </select>
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="edit-fuel-type">Fuel type</Label>
-            <select
+            <FieldSelect
               id="edit-fuel-type"
-              className={selectClassName}
               value={form.fuel_type}
-              onChange={(e) => updateField("fuel_type", e.target.value)}
+              onChange={(v) => updateField("fuel_type", v)}
+              options={FUEL_TYPES}
+              anyLabel="Any fuel"
               disabled={disabled}
-            >
-              <option value="">Any</option>
-              <option>Petrol</option>
-              <option>Diesel</option>
-              <option>CNG</option>
-              <option>Electric</option>
-              <option>Hybrid</option>
-            </select>
+            />
           </div>
           <div className="grid gap-2">
             <Label htmlFor="edit-transmission">Transmission</Label>
-            <select
+            <FieldSelect
               id="edit-transmission"
-              className={selectClassName}
               value={form.transmission}
-              onChange={(e) => updateField("transmission", e.target.value)}
-              disabled={disabled}
-            >
-              <option value="">Any</option>
-              <option>Manual</option>
-              <option>Automatic</option>
-            </select>
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-seating">Min seating</Label>
-            <Input
-              id="edit-seating"
-              type="number"
-              value={form.seating_capacity}
-              onChange={(e) => updateField("seating_capacity", e.target.value)}
+              onChange={(v) => updateField("transmission", v)}
+              options={TRANSMISSIONS}
+              anyLabel="Either"
               disabled={disabled}
             />
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-mileage">Preferred mileage</Label>
-            <Input
-              id="edit-mileage"
-              type="number"
-              value={form.preferred_mileage}
-              onChange={(e) => updateField("preferred_mileage", e.target.value)}
-              disabled={disabled}
-            />
+        </Section>
+
+        <Section title="Everyday needs">
+          <NumberField
+            id="edit-seating"
+            label="Minimum seats"
+            value={form.seating_capacity}
+            onChange={(v) => updateField("seating_capacity", v)}
+            error={errors.seating_capacity}
+            disabled={disabled}
+            min="1"
+            step="1"
+            placeholder="Any"
+          />
+          <NumberField
+            id="edit-mileage"
+            label="Preferred mileage"
+            value={form.preferred_mileage}
+            onChange={(v) => updateField("preferred_mileage", v)}
+            disabled={disabled}
+            min="0"
+            step="0.5"
+            placeholder="km/l"
+          />
+          <NumberField
+            id="edit-safety"
+            label="Preferred safety (0–5)"
+            value={form.preferred_safety_rating}
+            onChange={(v) => updateField("preferred_safety_rating", v)}
+            error={errors.preferred_safety_rating}
+            disabled={disabled}
+            min="0"
+            max="5"
+            step="0.5"
+            placeholder="Any"
+          />
+        </Section>
+
+        <fieldset className="grid gap-4 border-t border-border pt-6 md:grid-cols-[160px_minmax(0,1fr)] md:gap-8">
+          <legend className="sr-only">Priorities</legend>
+          <div aria-hidden="true">
+            <p className="font-heading text-sm font-bold">Priorities</p>
+            <p className="mt-1 text-xs text-muted-foreground">What matters most</p>
           </div>
-          <div className="grid gap-2">
-            <Label htmlFor="edit-safety">Preferred safety (0–5)</Label>
-            <Input
-              id="edit-safety"
-              type="number"
-              step="0.1"
-              min="0"
-              max="5"
-              value={form.preferred_safety_rating}
-              onChange={(e) =>
-                updateField("preferred_safety_rating", e.target.value)
-              }
-              disabled={disabled}
-            />
-          </div>
-          <div className="grid gap-2 sm:col-span-2">
-            <Label>Priorities</Label>
-            <div className="flex flex-wrap gap-2">
-              {PRIORITY_OPTIONS.map((name) => {
-                const active = (form.priorities || []).includes(name);
-                return (
-                  <Button
-                    key={name}
-                    type="button"
-                    size="sm"
-                    variant={active ? "default" : "outline"}
-                    onClick={() => togglePriority(name)}
-                    disabled={disabled}
-                  >
-                    {name}
-                  </Button>
-                );
-              })}
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="flex flex-wrap gap-2">
-          <Button type="submit" size="lg" disabled={disabled}>
-            Get recommendations
+          <ChoiceChips
+            label="Priorities"
+            multiple
+            options={PRIORITY_OPTIONS}
+            value={form.priorities}
+            onChange={(next) => updateField("priorities", next)}
+            disabled={disabled}
+          />
+        </fieldset>
+      </div>
+
+      <div className="flex flex-col-reverse gap-2 border-t border-border bg-secondary/50 px-5 py-4 sm:flex-row sm:justify-end sm:px-7">
+        {onCancel ? (
+          <Button type="button" variant="ghost" onClick={onCancel} disabled={disabled}>
+            Back to description
           </Button>
-          {onCancel ? (
-            <Button
-              type="button"
-              variant="outline"
-              onClick={onCancel}
-              disabled={disabled}
-            >
-              Cancel
-            </Button>
-          ) : null}
-        </CardFooter>
-      </form>
-    </Card>
+        ) : null}
+        <Button type="submit" size="lg" disabled={disabled}>
+          Show recommendations
+        </Button>
+      </div>
+    </form>
   );
 }
 

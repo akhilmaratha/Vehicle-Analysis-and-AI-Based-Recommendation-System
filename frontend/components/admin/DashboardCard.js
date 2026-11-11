@@ -1,25 +1,18 @@
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-
 export function DashboardCard({ title, value, description, icon: Icon }) {
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
-          {title}
-        </CardTitle>
-        {Icon ? <Icon className="size-4 text-muted-foreground" /> : null}
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-semibold">{value}</div>
-        {description ? (
-          <p className="mt-1 text-xs text-muted-foreground">{description}</p>
+    <div className="rounded-xl border border-border bg-card p-5">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        {Icon ? (
+          <span className="flex size-8 items-center justify-center rounded-md bg-sage text-primary">
+            <Icon className="size-4" aria-hidden="true" />
+          </span>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+      <p className="mt-3 font-heading text-3xl font-extrabold tracking-tight tabular">{value}</p>
+      {description ? (
+        <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{description}</p>
+      ) : null}
+    </div>
   );
 }

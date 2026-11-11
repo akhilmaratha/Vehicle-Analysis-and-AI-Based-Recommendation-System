@@ -17,7 +17,7 @@ class Settings(BaseSettings):
     GEMINI_API_KEY: str = ""
     GEMINI_MODEL: str = "gemini-3.5-flash-lite"
     GEMINI_TIMEOUT_SECONDS: float = 60.0
-    ALLOWED_ORIGINS: str = "http://localhost:3000"
+    ALLOWED_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
     DEBUG: bool = True
     APP_NAME: str = "Vehicle Recommendation API"
     APP_VERSION: str = "0.1.0"

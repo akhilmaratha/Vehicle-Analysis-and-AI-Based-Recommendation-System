@@ -15,7 +15,7 @@
     "boot_space": 268,
     "safety_rating": 4.0,
     "description": "DEMO DATA — Popular city hatchback sample for development.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Maruti_Suzuki_Swift_2093.JPG"
   },
   {
     "brand": "Maruti Suzuki",
@@ -33,7 +33,7 @@
     "boot_space": 180,
     "safety_rating": 3.0,
     "description": "DEMO DATA — Tall-boy hatchback with factory CNG option (sample specs).",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Maruti_Suzuki_Wagon_R.jpg"
   },
   {
     "brand": "Maruti Suzuki",
@@ -51,7 +51,7 @@
     "boot_space": 318,
     "safety_rating": 4.0,
     "description": "DEMO DATA — Premium hatchback sample with AMT transmission.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/5/5b/2022_Maruti_Suzuki_Baleno_Alpha_%28India%29_front_view.jpg/1280px-2022_Maruti_Suzuki_Baleno_Alpha_%28India%29_front_view.jpg"
   },
   {
     "brand": "Maruti Suzuki",
@@ -69,7 +69,7 @@
     "boot_space": 378,
     "safety_rating": 4.0,
     "description": "DEMO DATA — Compact sedan sample for entry-level sedan filtering.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/1/1c/Maruti_Suzuki_Dzire_VXi_VVT.JPG/1280px-Maruti_Suzuki_Dzire_VXi_VVT.JPG"
   },
   {
     "brand": "Maruti Suzuki",
@@ -87,7 +87,7 @@
     "boot_space": 373,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Strong-hybrid compact SUV sample (not verified factory figures).",
-    "image_url": null
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/4/4a/2022_Maruti_Suzuki_Grand_Vitara_Alpha_Smart_Hybrid_%28India%29_front_view.png"
   },
   {
     "brand": "Maruti Suzuki",
@@ -105,7 +105,7 @@
     "boot_space": 209,
     "safety_rating": 3.0,
     "description": "DEMO DATA — Family MUV with CNG sample configuration.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/2/23/2022_Maruti_Suzuki_Ertiga_LXi.jpg/1280px-2022_Maruti_Suzuki_Ertiga_LXi.jpg"
   },
   {
     "brand": "Hyundai",
@@ -123,7 +123,7 @@
     "boot_space": 311,
     "safety_rating": 3.0,
     "description": "DEMO DATA — Feature-rich hatchback sample with IVT.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/6/6d/Hyundai_i20_%28BC3%29_1X7A6488.jpg/1280px-Hyundai_i20_%28BC3%29_1X7A6488.jpg"
   },
   {
     "brand": "Hyundai",
@@ -141,7 +141,7 @@
     "boot_space": 402,
     "safety_rating": 2.0,
     "description": "DEMO DATA — Compact sedan CNG sample for budget filters.",
-    "image_url": null
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/1/17/2020_Hyundai_Aura_Front.png"
   },
   {
     "brand": "Hyundai",
@@ -159,7 +159,7 @@
     "boot_space": 528,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Midsize sedan turbo DCT sample.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/31/HYUNDAI_VERNA_%28HYUNDAI_ACCENT%29_%28RB%2CRC%29_China.jpg/1280px-HYUNDAI_VERNA_%28HYUNDAI_ACCENT%29_%28RB%2CRC%29_China.jpg"
   },
   {
     "brand": "Hyundai",
@@ -177,7 +177,7 @@
     "boot_space": 433,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Compact SUV diesel automatic sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/2024_Hyundai_Creta_1.5_MPi_SX%28O%29_%28India%29_front_view.png"
   },
   {
     "brand": "Hyundai",
@@ -195,7 +195,7 @@
     "boot_space": 180,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Three-row SUV sample for seating-capacity filters.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/3d/2021_Hyundai_Alcazar_1.5_Prestige_%28India%29_front_view.png/1280px-2021_Hyundai_Alcazar_1.5_Prestige_%28India%29_front_view.png"
   },
   {
     "brand": "Tata",
@@ -213,7 +213,7 @@
     "boot_space": 242,
     "safety_rating": 4.0,
     "description": "DEMO DATA — Entry hatchback CNG sample.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/4/45/2019_Tata_Tiago_XZ_%28front_three-quarter_view%29_%28pre-facelift%29.jpg/1280px-2019_Tata_Tiago_XZ_%28front_three-quarter_view%29_%28pre-facelift%29.jpg"
   },
   {
     "brand": "Tata",
@@ -231,7 +231,7 @@
     "boot_space": 345,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Premium hatch diesel sample with strong safety focus.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/3/38/Tata_Altroz%2C_GIMS_2019%2C_Le_Grand-Saconnex_%28GIMS0646%29.jpg/1280px-Tata_Altroz%2C_GIMS_2019%2C_Le_Grand-Saconnex_%28GIMS0646%29.jpg"
   },
   {
     "brand": "Tata",
@@ -249,7 +249,7 @@
     "boot_space": 419,
     "safety_rating": 4.0,
     "description": "DEMO DATA — Compact sedan sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/TATA%20Tigor%20at%20Shillong%20Peak%20View.jpg"
   },
   {
     "brand": "Tata",
@@ -267,7 +267,7 @@
     "boot_space": 382,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Compact SUV petrol manual sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/2023_Tata_Nexon_XZA%2B_front_view.jpg"
   },
   {
     "brand": "Tata",
@@ -285,7 +285,7 @@
     "boot_space": 366,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Micro-SUV AMT sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/2021%20Tata%20Punch%20Creative%20%28India%29%20front%20view%2001.png"
   },
   {
     "brand": "Tata",
@@ -303,7 +303,7 @@
     "boot_space": 350,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Electric SUV sample; mileage field stores claimed range (km) for demos.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/2023_Tata_Nexon_XZA%2B_front_view.jpg"
   },
   {
     "brand": "Tata",
@@ -321,7 +321,7 @@
     "boot_space": 447,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Full-size 7-seater diesel SUV sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Tata%20Safari%204x4%20front.jpg"
   },
   {
     "brand": "Mahindra",
@@ -339,7 +339,7 @@
     "boot_space": 259,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Compact diesel SUV sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mahindra_XUV300.jpg"
   },
   {
     "brand": "Mahindra",
@@ -357,7 +357,7 @@
     "boot_space": 360,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Flagship midsize SUV diesel AT sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/2021%20Mahindra%20XUV700%202.2%20AX7%20%28India%29%20front%20view.png"
   },
   {
     "brand": "Mahindra",
@@ -375,7 +375,7 @@
     "boot_space": 460,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Rugged 7-seater petrol AT sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Indian%20army%20mahindra%20scorpio.jpg"
   },
   {
     "brand": "Mahindra",
@@ -393,7 +393,7 @@
     "boot_space": 384,
     "safety_rating": 3.0,
     "description": "DEMO DATA — Utility MUV diesel sample for rural/highway demos.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Mahindra%20TUV300%2C%20Bangladesh.%20%2834420008206%29.jpg"
   },
   {
     "brand": "Honda",
@@ -411,7 +411,7 @@
     "boot_space": 420,
     "safety_rating": 4.0,
     "description": "DEMO DATA — Compact sedan CVT sample.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/f/f4/Honda_Amaze_%28front%29.png/1280px-Honda_Amaze_%28front%29.png"
   },
   {
     "brand": "Honda",
@@ -429,7 +429,7 @@
     "boot_space": 506,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Midsize sedan CVT sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Honda_City_2020.jpg"
   },
   {
     "brand": "Honda",
@@ -447,7 +447,7 @@
     "boot_space": 458,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Compact SUV CVT sample.",
-    "image_url": null
+    "image_url": "https://upload.wikimedia.org/wikipedia/commons/9/90/2023_Honda_Elevate_VX_%28India%29_front_view.jpg"
   },
   {
     "brand": "Toyota",
@@ -465,7 +465,7 @@
     "boot_space": 318,
     "safety_rating": 4.0,
     "description": "DEMO DATA — Badge-engineered hatchback AMT sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Toyota_Glanza.jpg"
   },
   {
     "brand": "Toyota",
@@ -483,7 +483,7 @@
     "boot_space": 373,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Strong-hybrid compact SUV sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Toyota_Urban_Cruiser_Hyryder.jpg"
   },
   {
     "brand": "Toyota",
@@ -501,7 +501,7 @@
     "boot_space": 300,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Premium hybrid MPV/MUV sample.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/7/7c/2023_Toyota_Zenix_2.0_v.jpg/1280px-2023_Toyota_Zenix_2.0_v.jpg"
   },
   {
     "brand": "Kia",
@@ -519,7 +519,7 @@
     "boot_space": 385,
     "safety_rating": 3.0,
     "description": "DEMO DATA — Subcompact diesel SUV sample (iMT treated as Manual).",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/8/82/Kia_Sonet_02.jpg/1280px-Kia_Sonet_02.jpg"
   },
   {
     "brand": "Kia",
@@ -537,7 +537,7 @@
     "boot_space": 433,
     "safety_rating": 3.0,
     "description": "DEMO DATA — Compact SUV turbo DCT sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Kia_Seltos_%28Blue%29_%E2%80%93_Front.png"
   },
   {
     "brand": "Kia",
@@ -555,7 +555,7 @@
     "boot_space": 216,
     "safety_rating": 3.0,
     "description": "DEMO DATA — Lifestyle MPV diesel sample.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/b/bd/KIA_CARENS_%28RP%29_China_%283%29.jpg/1280px-KIA_CARENS_%28RP%29_China_%283%29.jpg"
   },
   {
     "brand": "MG",
@@ -573,7 +573,7 @@
     "boot_space": null,
     "safety_rating": null,
     "description": "DEMO DATA — Urban EV hatch sample; mileage stores claimed range (km).",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/2023%20MG%20Comet%20EV%20Plush%20%28India%29.png"
   },
   {
     "brand": "MG",
@@ -591,7 +591,7 @@
     "boot_space": 448,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Compact electric SUV sample; mileage stores claimed range (km).",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/MG_ZS_EV.jpg"
   },
   {
     "brand": "Skoda",
@@ -609,7 +609,7 @@
     "boot_space": 521,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Midsize turbo sedan DSG sample.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Skoda%20Slavia%20Side%20view.jpg"
   },
   {
     "brand": "Volkswagen",
@@ -627,7 +627,7 @@
     "boot_space": 521,
     "safety_rating": 5.0,
     "description": "DEMO DATA — Midsize turbo sedan DSG sample.",
-    "image_url": null
+    "image_url": "https://thumb.wikimedia.org/wikipedia/commons/thumb/e/e3/2018_Volkswagen_Virtus_1.6_MSi_Highline_AT.jpg/1280px-2018_Volkswagen_Virtus_1.6_MSi_Highline_AT.jpg"
   },
   {
     "brand": "Renault",
@@ -645,6 +645,6 @@
     "boot_space": 279,
     "safety_rating": 1.0,
     "description": "DEMO DATA — Entry hatch AMT sample for low-price filters.",
-    "image_url": null
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Renault_Kwid.jpg"
   }
 ]

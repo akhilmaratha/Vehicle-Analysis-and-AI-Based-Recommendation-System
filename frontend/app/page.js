@@ -1,315 +1,264 @@
-"use client";
-
-import { useEffect, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Car,
-  GitCompareArrows,
-  Lightbulb,
-  Search,
-  Sparkles,
-} from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { HomeSearch } from "@/components/home/HomeSearch";
+import { FeaturedVehicles } from "@/components/home/FeaturedVehicles";
 import { VehicleCategoryCard } from "@/components/home/VehicleCategoryCard";
-import { VehicleGrid } from "@/components/vehicles/VehicleGrid";
-import { EmptyState } from "@/components/EmptyState";
-import { ErrorState } from "@/components/ErrorState";
+import { SectionHeading } from "@/components/layout/SectionHeading";
 import { Button } from "@/components/ui/button";
-import { getVehicles } from "@/lib/api";
+import heroImage from "@/public/images/hero-car.jpg";
 
 const CATEGORIES = [
   {
     label: "Hatchback",
-    description: "Compact cars for city driving",
+    description: "Easy to park, light on fuel, made for the city.",
     href: "/vehicles?vehicle_type=Hatchback",
   },
   {
     label: "Sedan",
-    description: "Comfortable everyday saloons",
+    description: "Comfortable, composed and roomy for long drives.",
     href: "/vehicles?vehicle_type=Sedan",
   },
   {
     label: "SUV",
-    description: "Space and road presence",
+    description: "Higher seating, more space and confident road presence.",
     href: "/vehicles?vehicle_type=SUV",
   },
   {
     label: "MUV",
-    description: "Family-friendly multi-utility",
+    description: "Room for the whole family and their luggage.",
     href: "/vehicles?vehicle_type=MUV",
   },
   {
     label: "Electric",
-    description: "Zero-emission EV options",
+    description: "Quiet, efficient and zero tailpipe emissions.",
     href: "/vehicles?fuel_type=Electric",
   },
 ];
 
-const WHY_CHOOSE = [
+const PRINCIPLES = [
   {
-    icon: Search,
-    title: "Requirement discovery",
+    title: "A real catalog, honestly described",
     description:
-      "Capture budget, fuel preference, body type, and other constraints so you start from clear buying criteria.",
+      "Every listing comes from the live catalog. When a specification has not been recorded, we say so instead of guessing.",
   },
   {
-    icon: Sparkles,
-    title: "Intelligent recommendations",
+    title: "Filters that match how you shop",
     description:
-      "Planned AI ranking will score vehicles against your priorities (mileage, safety, seating, and more) once the recommendation engine is fully wired.",
+      "Narrow down by brand, budget, fuel, transmission, body type, mileage and seating — the details that actually decide a purchase.",
   },
   {
-    icon: GitCompareArrows,
-    title: "Side-by-side comparison",
+    title: "Side-by-side, without the spreadsheet",
     description:
-      "Compare shortlisted models on price, efficiency, and key specs so trade-offs are easy to see.",
+      "Shortlist up to three vehicles and see price, efficiency, power and practicality in one view, with differences highlighted.",
   },
   {
-    icon: Lightbulb,
-    title: "Thoughtful alternatives",
+    title: "Recommendations you can read",
     description:
-      "When an exact match is scarce, upcoming recommendation flows will surface nearby alternatives within similar budgets and categories.",
+      "Every suggestion shows how it was scored and why it fits, along with the compromises worth knowing before you decide.",
   },
 ];
 
-const FEATURED_LIMIT = 6;
+const STEPS = [
+  {
+    title: "Tell us what you need",
+    description:
+      "Describe it in your own words or use a short form. We turn your description into budget, fuel, type and priorities, and you confirm or correct them.",
+  },
+  {
+    title: "We filter, then rank",
+    description:
+      "Vehicles outside your firm requirements are set aside. The rest are scored against your priorities and how closely they match your preferences.",
+  },
+  {
+    title: "You see the reasoning",
+    description:
+      "Each recommendation comes with its scores, its main advantages and its potential compromises, plus nearby alternatives worth a look.",
+  },
+];
 
 export default function HomePage() {
-  const [featured, setFeatured] = useState([]);
-  const [fetchKey, setFetchKey] = useState(0);
-  const [snapshot, setSnapshot] = useState({
-    key: null,
-    error: null,
-  });
-
-  const loading = snapshot.key !== fetchKey;
-  const error = snapshot.key === fetchKey ? snapshot.error : null;
-
-  useEffect(() => {
-    const controller = new AbortController();
-    let active = true;
-    const key = fetchKey;
-
-    getVehicles(
-      { limit: FEATURED_LIMIT, page: 1 },
-      { signal: controller.signal }
-    )
-      .then((data) => {
-        if (!active) return;
-        setFeatured(Array.isArray(data?.items) ? data.items : []);
-        setSnapshot({ key, error: null });
-      })
-      .catch((err) => {
-        if (!active || err?.name === "AbortError") return;
-        setFeatured([]);
-        setSnapshot({
-          key,
-          error: err?.message || "Failed to load featured vehicles.",
-        });
-      });
-
-    return () => {
-      active = false;
-      controller.abort();
-    };
-  }, [fetchKey]);
-
-  function handleRetry() {
-    setFetchKey((key) => key + 1);
-  }
-
   return (
     <div>
       {/* Hero */}
-      <section className="relative overflow-hidden border-b border-border bg-gradient-to-b from-slate-50 via-white to-background">
-        <div className="hero-grid pointer-events-none absolute inset-0 opacity-60" />
-        <div className="page-container relative grid items-center gap-10 py-16 sm:py-20 lg:grid-cols-2 lg:gap-12">
-          <div className="space-y-6">
-            <p className="text-sm font-medium uppercase tracking-wider text-primary">
-              VehicleAI
-            </p>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-              Find the Right Vehicle for Your Needs
+      <section className="overflow-hidden">
+        <div className="page-container grid items-center gap-10 pt-10 pb-12 sm:pt-14 lg:grid-cols-[1.02fr_1fr] lg:gap-14 lg:pt-20 lg:pb-16">
+          <div className="space-y-7">
+            <p className="eyebrow">Vehicle discovery, made personal</p>
+            <h1 className="font-heading text-[2.6rem] leading-[1.04] font-extrabold tracking-[-0.035em] text-balance sm:text-6xl lg:text-[4.5rem]">
+              Find a car that fits your life.
             </h1>
-            <p className="max-w-xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              Explore a curated catalog, filter by what matters to you, compare
-              options side by side, and use AI-assisted recommendations to
-              narrow down the best fit for your budget and lifestyle.
+            <p className="max-w-xl text-lg leading-relaxed text-pretty text-muted-foreground">
+              Explore vehicles, compare the details, and discover the right
+              match for your budget and everyday needs.
             </p>
-            <div className="flex flex-wrap gap-3">
-              <Button
-                size="lg"
-                className="gap-2"
-                nativeButton={false}
-                render={<Link href="/vehicles" />}
-              >
-                Explore Vehicles
-                <ArrowRight className="size-4" aria-hidden="true" />
+            <div className="flex flex-col gap-3 sm:flex-row">
+              <Button size="lg" nativeButton={false} render={<Link href="/vehicles" />}>
+                Explore vehicles
+                <ArrowRight data-icon="inline-end" aria-hidden="true" />
               </Button>
               <Button
                 size="lg"
                 variant="outline"
-                className="gap-2"
                 nativeButton={false}
                 render={<Link href="/recommendations" />}
               >
-                <Sparkles className="size-4" aria-hidden="true" />
-                Get AI Recommendations
+                Get recommendations
               </Button>
             </div>
           </div>
 
-          <div
-            className="relative flex min-h-[240px] items-center justify-center rounded-2xl border border-border/80 bg-gradient-to-br from-slate-100 via-slate-50 to-primary/10 shadow-sm sm:min-h-[320px]"
-            aria-hidden="true"
-          >
-            <div className="absolute inset-6 rounded-xl border border-dashed border-slate-300/80" />
-            <div className="relative flex flex-col items-center gap-3 text-slate-500">
-              <span className="flex size-20 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-border">
-                <Car className="size-10 text-primary" />
-              </span>
-              <span className="text-sm font-medium tracking-wide">
-                Smart vehicle discovery
-              </span>
+          <div className="relative">
+            <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-sage">
+              <Image
+                src={heroImage}
+                alt="A dark green compact SUV parked on a quiet tree-lined street in warm evening light"
+                fill
+                preload
+                placeholder="blur"
+                sizes="(min-width: 1280px) 600px, (min-width: 1024px) 48vw, 100vw"
+                className="object-cover"
+              />
             </div>
           </div>
         </div>
       </section>
 
-      {/* Search */}
-      <section className="page-container section-y">
+      {/* Quick search */}
+      <section className="page-container pb-16 sm:pb-20" aria-labelledby="quick-search-heading">
+        <h2 id="quick-search-heading" className="mb-4 font-heading text-lg font-bold">
+          Start with the basics
+        </h2>
         <HomeSearch />
       </section>
 
-      {/* Categories */}
-      <section className="border-y border-border bg-slate-50/70">
-        <div className="page-container section-y space-y-8">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Browse by category
-            </h2>
-            <p className="mt-1 text-muted-foreground">
-              Jump straight into body types or electric vehicles.
-            </p>
-          </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-            {CATEGORIES.map((category) => (
-              <VehicleCategoryCard key={category.label} {...category} />
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Featured */}
-      <section className="page-container section-y space-y-8">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Featured vehicles
-            </h2>
-            <p className="mt-1 text-muted-foreground">
-              Latest listings from the live catalog.
-            </p>
-          </div>
-          <Button
-            variant="outline"
-            className="gap-2 self-start sm:self-auto"
-            nativeButton={false}
-            render={<Link href="/vehicles" />}
-          >
-            View All
-            <ArrowRight className="size-4" aria-hidden="true" />
-          </Button>
-        </div>
-
-        {error ? (
-          <ErrorState
-            title="Could not load featured vehicles"
-            description={error}
-            onRetry={handleRetry}
-          />
-        ) : loading ? (
-          <VehicleGrid loading skeletonCount={FEATURED_LIMIT} />
-        ) : featured.length === 0 ? (
-          <EmptyState
-            title="No vehicles to feature yet"
-            description="Once vehicles are added to the catalog, they will appear here."
+      <section className="border-t border-border bg-surface/60">
+        <div className="page-container section-y space-y-10">
+          <SectionHeading
+            eyebrow="Latest arrivals"
+            title="Recently added to the catalog"
+            description="The newest listings, straight from the live inventory."
             action={
-              <Button
-                variant="outline"
-                nativeButton={false}
-                render={<Link href="/vehicles" />}
-              >
-                Explore Vehicles
+              <Button variant="outline" nativeButton={false} render={<Link href="/vehicles" />}>
+                View all vehicles
+                <ArrowRight data-icon="inline-end" aria-hidden="true" />
               </Button>
             }
           />
-        ) : (
-          <VehicleGrid vehicles={featured} />
-        )}
-      </section>
-
-      {/* Why choose */}
-      <section className="border-y border-border bg-white">
-        <div className="page-container section-y space-y-8">
-          <div>
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Why Choose VehicleAI
-            </h2>
-            <p className="mt-1 max-w-2xl text-muted-foreground">
-              Capabilities available today and planned for upcoming phases —
-              described honestly, without overselling unfinished AI flows.
-            </p>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2">
-            {WHY_CHOOSE.map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.title}
-                  className="flex gap-4 rounded-xl border border-border/80 bg-slate-50/50 p-5"
-                >
-                  <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-                    <Icon className="size-5" aria-hidden="true" />
-                  </span>
-                  <div>
-                    <h3 className="font-semibold text-foreground">
-                      {item.title}
-                    </h3>
-                    <p className="mt-1 text-sm leading-relaxed text-muted-foreground">
-                      {item.description}
-                    </p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <FeaturedVehicles />
         </div>
       </section>
 
-      {/* Final CTA */}
-      <section className="page-container section-y">
-        <div className="flex flex-col items-start justify-between gap-6 rounded-2xl border border-border bg-gradient-to-br from-primary to-primary/90 px-6 py-10 text-primary-foreground shadow-sm sm:flex-row sm:items-center sm:px-10">
-          <div className="max-w-xl space-y-2">
-            <h2 className="text-2xl font-semibold tracking-tight">
-              Ready for smarter recommendations?
+      {/* Categories */}
+      <section className="page-container section-y space-y-10">
+        <SectionHeading
+          eyebrow="Browse by type"
+          title="Start from the shape of your day"
+          description="Pick a body style or go electric, then refine from there."
+        />
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {CATEGORIES.map((category, index) => (
+            <VehicleCategoryCard key={category.label} index={index + 1} {...category} />
+          ))}
+        </div>
+      </section>
+
+      {/* Why VehicleAI */}
+      <section className="border-y border-border bg-card">
+        <div className="page-container section-y grid gap-12 lg:grid-cols-[0.8fr_1.2fr] lg:gap-20">
+          <SectionHeading
+            eyebrow="Why VehicleAI"
+            title="Less noise. Clearer decisions."
+            description="Buying a car is a big decision. We keep the information honest and the tools simple, so you can focus on what matters to you."
+          />
+          <dl className="grid gap-x-10 gap-y-10 sm:grid-cols-2">
+            {PRINCIPLES.map((item) => (
+              <div key={item.title} className="space-y-2 border-t-2 border-primary pt-5">
+                <dt className="font-heading text-lg font-bold">{item.title}</dt>
+                <dd className="text-sm leading-relaxed text-muted-foreground">
+                  {item.description}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      {/* How recommendations work */}
+      <section className="page-container section-y space-y-12">
+        <SectionHeading
+          eyebrow="How recommendations work"
+          title="Three steps from a sentence to a shortlist"
+        />
+        <ol className="grid gap-10 md:grid-cols-3 md:gap-8">
+          {STEPS.map((step, index) => (
+            <li key={step.title} className="space-y-4">
+              <span className="font-heading text-5xl font-extrabold text-primary/20 tabular">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <h3 className="font-heading text-xl font-bold">{step.title}</h3>
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                {step.description}
+              </p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* AI recommendation CTA */}
+      <section className="page-container pb-16 sm:pb-20">
+        <div className="grid gap-8 overflow-hidden rounded-2xl bg-primary px-6 py-12 text-primary-foreground sm:px-12 sm:py-14 lg:grid-cols-[1.3fr_auto] lg:items-center">
+          <div className="max-w-2xl space-y-4">
+            <p className="text-xs font-semibold tracking-[0.14em] text-sage uppercase">
+              Personal recommendations
+            </p>
+            <h2 className="font-heading text-3xl font-bold text-balance text-primary-foreground sm:text-4xl">
+              Not sure where to start? Describe your ideal car.
             </h2>
-            <p className="text-sm leading-relaxed text-primary-foreground/85 sm:text-base">
-              Tell us your budget and preferences — the recommendations page
-              will guide you toward vehicles that fit.
+            <p className="text-base leading-relaxed text-primary-foreground/75">
+              Try something like &ldquo;An SUV under ₹15 lakh, automatic, with
+              good mileage and safety.&rdquo; We will confirm the details with
+              you before ranking a shortlist.
             </p>
           </div>
           <Button
             size="lg"
-            variant="secondary"
-            className="gap-2 shrink-0"
+            variant="inverse"
             nativeButton={false}
             render={<Link href="/recommendations" />}
           >
-            Get AI Recommendations
-            <ArrowRight className="size-4" aria-hidden="true" />
+            Get recommendations
+            <ArrowRight data-icon="inline-end" aria-hidden="true" />
           </Button>
+        </div>
+      </section>
+
+      {/* Final discovery CTA */}
+      <section className="border-t border-border">
+        <div className="page-container flex flex-col items-start gap-6 py-16 sm:py-20 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl space-y-3">
+            <h2 className="font-heading text-3xl font-bold text-balance sm:text-4xl">
+              Ready to look around?
+            </h2>
+            <p className="text-base leading-relaxed text-muted-foreground">
+              Browse the full catalog at your own pace, then shortlist a few to
+              compare side by side.
+            </p>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button size="lg" nativeButton={false} render={<Link href="/vehicles" />}>
+              Explore vehicles
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              nativeButton={false}
+              render={<Link href="/compare" />}
+            >
+              Open compare
+            </Button>
+          </div>
         </div>
       </section>
     </div>

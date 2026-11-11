@@ -1,14 +1,16 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
+import { FieldSelect } from "@/components/forms/FieldSelect";
+import { VehicleImage } from "@/components/vehicles/VehicleImage";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-
-const FUEL_TYPES = ["Petrol", "Diesel", "CNG", "Electric", "Hybrid"];
-const TRANSMISSIONS = ["Manual", "Automatic"];
-const VEHICLE_TYPES = ["Hatchback", "Sedan", "SUV", "MUV", "Coupe", "Other"];
+import { Textarea } from "@/components/ui/textarea";
+import { FUEL_TYPES, TRANSMISSIONS, VEHICLE_TYPES } from "@/lib/vehicle-options";
+import { formatINR } from "@/lib/format";
 
 const emptyVehicle = {
   brand: "",
@@ -31,7 +33,17 @@ const emptyVehicle = {
 
 const formFields = Object.keys(emptyVehicle);
 
-export function VehicleForm({ initialVehicle = null, submitLabel = "Save Vehicle", onSubmit }) {
+function isLikelyUrl(value) {
+  if (!value) return false;
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+export function VehicleForm({ initialVehicle = null, submitLabel = "Save Vehicle", onSubmit, cancelHref = "/admin/vehicles" }) {
   const initial = useMemo(
     () => ({ ...emptyVehicle, ...(initialVehicle || {}) }),
     [initialVehicle]
@@ -39,6 +51,27 @@ export function VehicleForm({ initialVehicle = null, submitLabel = "Save Vehicle
   const [form, setForm] = useState(initial);
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const imageUrl = (form.image_url || "").trim();
+  const validImageUrl = isLikelyUrl(imageUrl) ? imageUrl : "";
+  const [previewUrl, setPreviewUrl] = useState(validImageUrl);
+  const [imageStatus, setImageStatus] = useState("loading");
+
+  useEffect(() => {
+    if (validImageUrl === previewUrl) return undefined;
+    const timer = window.setTimeout(() => {
+      setPreviewUrl(validImageUrl);
+      setImageStatus("loading");
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [validImageUrl, previewUrl]);
+
+  const displayStatus = !imageUrl
+    ? "empty"
+    : !validImageUrl
+      ? "invalid"
+      : validImageUrl !== previewUrl
+        ? "loading"
+        : imageStatus;
 
   function updateField(name, value) {
     setForm((current) => ({ ...current, [name]: value }));
@@ -96,82 +129,232 @@ export function VehicleForm({ initialVehicle = null, submitLabel = "Save Vehicle
     }
   }
 
+  const priceNumber = Number(form.price);
+  const pricePreview =
+    form.price !== "" && !Number.isNaN(priceNumber) && priceNumber > 0 ? formatINR(priceNumber) : null;
+
   return (
-    <Card>
-      <CardContent>
-        <form className="grid gap-4" onSubmit={handleSubmit}>
-          <div className="grid gap-4 md:grid-cols-2">
+    <form className="space-y-6 pb-4" onSubmit={handleSubmit}>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div className="space-y-6">
+          <FormSection title="Basics" description="How the vehicle appears in listings.">
             <TextField label="Brand" name="brand" value={form.brand} onChange={updateField} required />
             <TextField label="Model" name="model" value={form.model} onChange={updateField} required />
-            <TextField label="Variant" name="variant" value={form.variant || ""} onChange={updateField} />
-            <TextField label="Price" name="price" type="number" value={form.price} onChange={updateField} required />
-            <SelectField label="Fuel Type" name="fuel_type" value={form.fuel_type} options={FUEL_TYPES} onChange={updateField} />
-            <SelectField label="Transmission" name="transmission" value={form.transmission} options={TRANSMISSIONS} onChange={updateField} />
-            <SelectField label="Vehicle Type" name="vehicle_type" value={form.vehicle_type} options={VEHICLE_TYPES} onChange={updateField} />
-            <TextField label="Mileage" name="mileage" type="number" value={form.mileage || ""} onChange={updateField} />
-            <TextField label="Engine" name="engine" value={form.engine || ""} onChange={updateField} />
-            <TextField label="Power" name="power" value={form.power || ""} onChange={updateField} />
-            <TextField label="Torque" name="torque" value={form.torque || ""} onChange={updateField} />
-            <TextField label="Seating Capacity" name="seating_capacity" type="number" value={form.seating_capacity || ""} onChange={updateField} />
-            <TextField label="Boot Space" name="boot_space" type="number" value={form.boot_space || ""} onChange={updateField} />
-            <TextField label="Safety Rating" name="safety_rating" type="number" step="0.1" value={form.safety_rating || ""} onChange={updateField} />
-            <TextField label="Image URL" name="image_url" value={form.image_url || ""} onChange={updateField} />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="description">Description</Label>
-            <textarea
-              id="description"
-              className="min-h-24 w-full rounded-lg border border-input bg-transparent px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              value={form.description || ""}
-              onChange={(event) => updateField("description", event.target.value)}
+            <TextField label="Variant" name="variant" value={form.variant ?? ""} onChange={updateField} />
+            <TextField
+              label="Price (₹)"
+              name="price"
+              type="number"
+              min="0"
+              step="1000"
+              inputMode="numeric"
+              value={form.price ?? ""}
+              onChange={updateField}
+              required
+              hint={pricePreview}
             />
-          </div>
-          {error ? (
-            <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">
-              {error}
-            </p>
-          ) : null}
-          <div className="flex justify-end gap-2">
-            <Button type="submit" disabled={submitting}>
-              {submitting ? "Saving..." : submitLabel}
-            </Button>
-          </div>
-        </form>
-      </CardContent>
-    </Card>
+            <SelectField label="Vehicle type" name="vehicle_type" value={form.vehicle_type} options={VEHICLE_TYPES} onChange={updateField} />
+          </FormSection>
+
+          <FormSection title="Powertrain" description="Engine and efficiency details.">
+            <SelectField label="Fuel type" name="fuel_type" value={form.fuel_type} options={FUEL_TYPES} onChange={updateField} />
+            <SelectField label="Transmission" name="transmission" value={form.transmission} options={TRANSMISSIONS} onChange={updateField} />
+            <TextField
+              label={form.fuel_type === "Electric" ? "Range (km/charge)" : "Mileage (km/l)"}
+              name="mileage"
+              type="number"
+              min="0"
+              step="0.1"
+              inputMode="decimal"
+              value={form.mileage ?? ""}
+              onChange={updateField}
+            />
+            <TextField label="Engine" name="engine" placeholder="e.g. 1.5L Turbo" value={form.engine ?? ""} onChange={updateField} />
+            <TextField label="Power" name="power" placeholder="e.g. 115 PS" value={form.power ?? ""} onChange={updateField} />
+            <TextField label="Torque" name="torque" placeholder="e.g. 144 Nm" value={form.torque ?? ""} onChange={updateField} />
+          </FormSection>
+
+          <FormSection title="Practicality and safety">
+            <TextField
+              label="Seating capacity"
+              name="seating_capacity"
+              type="number"
+              min="1"
+              step="1"
+              inputMode="numeric"
+              value={form.seating_capacity ?? ""}
+              onChange={updateField}
+            />
+            <TextField
+              label="Boot space (L)"
+              name="boot_space"
+              type="number"
+              min="0"
+              inputMode="numeric"
+              value={form.boot_space ?? ""}
+              onChange={updateField}
+            />
+            <TextField
+              label="Safety rating (0–5)"
+              name="safety_rating"
+              type="number"
+              min="0"
+              max="5"
+              step="0.1"
+              inputMode="decimal"
+              value={form.safety_rating ?? ""}
+              onChange={updateField}
+            />
+          </FormSection>
+
+          <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+            <div className="space-y-2">
+              <Label htmlFor="description" className="font-heading text-base font-bold">
+                Description
+              </Label>
+              <Textarea
+                id="description"
+                className="min-h-32"
+                placeholder="A short, factual summary of the vehicle."
+                value={form.description ?? ""}
+                onChange={(event) => updateField("description", event.target.value)}
+              />
+            </div>
+          </section>
+        </div>
+
+        <aside className="xl:sticky xl:top-6 xl:self-start">
+          <section className="space-y-4 rounded-xl border border-border bg-card p-5">
+            <div>
+              <h2 className="font-heading text-base font-bold">Image</h2>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Paste the image URL (for example from Cloudinary).
+              </p>
+            </div>
+            <VehicleImage
+              key={previewUrl || "empty"}
+              src={previewUrl || null}
+              alt="Vehicle image preview"
+              aspect="card"
+              className="rounded-lg border border-border"
+              onStatusChange={setImageStatus}
+            />
+            <div className="space-y-2">
+              <Label htmlFor="image_url">Image URL</Label>
+              <Input
+                id="image_url"
+                type="url"
+                inputMode="url"
+                placeholder="https://res.cloudinary.com/…"
+                value={form.image_url ?? ""}
+                onChange={(event) => updateField("image_url", event.target.value)}
+                aria-describedby="image_url-status"
+              />
+              <ImageStatus status={displayStatus} />
+            </div>
+          </section>
+        </aside>
+      </div>
+
+      {error ? (
+        <p
+          className="rounded-lg border border-destructive/25 bg-destructive/5 px-4 py-3 text-sm text-destructive"
+          role="alert"
+        >
+          {error}
+        </p>
+      ) : null}
+
+      <div className="sticky bottom-0 z-10 -mx-4 flex flex-col-reverse gap-2 border-t border-border bg-background/95 px-4 py-4 supports-backdrop-filter:backdrop-blur-md sm:-mx-6 sm:flex-row sm:justify-end sm:px-6 lg:-mx-10 lg:px-10">
+        <Button
+          type="button"
+          variant="outline"
+          nativeButton={false}
+          render={<Link href={cancelHref} />}
+        >
+          Cancel
+        </Button>
+        <Button type="submit" disabled={submitting}>
+          {submitting ? "Saving..." : submitLabel}
+        </Button>
+      </div>
+    </form>
   );
 }
 
-function TextField({ label, name, value, onChange, ...props }) {
+function ImageStatus({ status }) {
+  const content = {
+    empty: { text: "No image yet. Listings will show a neutral placeholder.", tone: "muted" },
+    loading: { text: "Checking image…", tone: "muted" },
+    loaded: { text: "Image loaded successfully.", tone: "ok" },
+    error: { text: "This URL did not load an image. Check the link before saving.", tone: "warn" },
+    invalid: { text: "Enter a full URL starting with https://", tone: "warn" },
+  }[status] || { text: "", tone: "muted" };
+
   return (
-    <div className="space-y-1.5">
-      <Label htmlFor={name}>{label}</Label>
+    <p
+      id="image_url-status"
+      className={
+        content.tone === "warn"
+          ? "flex items-start gap-1.5 text-xs text-destructive"
+          : content.tone === "ok"
+            ? "flex items-start gap-1.5 text-xs text-primary"
+            : "text-xs text-muted-foreground"
+      }
+      aria-live="polite"
+    >
+      {content.tone === "warn" ? <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden="true" /> : null}
+      {content.tone === "ok" ? <CheckCircle2 className="mt-px size-3.5 shrink-0" aria-hidden="true" /> : null}
+      {content.text}
+    </p>
+  );
+}
+
+function FormSection({ title, description, children }) {
+  return (
+    <section className="rounded-xl border border-border bg-card p-5 sm:p-6">
+      <div className="mb-5">
+        <h2 className="font-heading text-base font-bold">{title}</h2>
+        {description ? <p className="mt-1 text-sm text-muted-foreground">{description}</p> : null}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">{children}</div>
+    </section>
+  );
+}
+
+function TextField({ label, name, value, onChange, hint, ...props }) {
+  return (
+    <div className="space-y-2">
+      <Label htmlFor={name}>
+        {label}
+        {props.required ? <span className="text-destructive" aria-hidden="true"> *</span> : null}
+      </Label>
       <Input
         id={name}
         value={value}
         onChange={(event) => onChange(name, event.target.value)}
+        aria-describedby={hint ? `${name}-hint` : undefined}
         {...props}
       />
+      {hint ? (
+        <p id={`${name}-hint`} className="text-xs text-muted-foreground tabular">
+          {hint}
+        </p>
+      ) : null}
     </div>
   );
 }
 
 function SelectField({ label, name, value, options, onChange }) {
   return (
-    <div className="space-y-1.5">
+    <div className="space-y-2">
       <Label htmlFor={name}>{label}</Label>
-      <select
+      <FieldSelect
         id={name}
-        className="h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
         value={value}
-        onChange={(event) => onChange(name, event.target.value)}
-      >
-        {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
-          </option>
-        ))}
-      </select>
+        options={options}
+        onChange={(next) => onChange(name, next)}
+      />
     </div>
   );
 }

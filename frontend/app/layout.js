@@ -1,34 +1,35 @@
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter, Manrope } from "next/font/google";
+import { SiteChrome } from "@/components/layout/SiteChrome";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const inter = Inter({
+  variable: "--font-inter",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const manrope = Manrope({
+  variable: "--font-manrope",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata = {
-  title: "VehicleAI — Vehicle Analysis & AI Recommendations",
+  title: "VehicleAI — Find a car that fits your life",
   description:
-    "Search, compare, and get AI-powered vehicle recommendations tailored to your needs.",
+    "Explore vehicles, compare the details, and get AI-assisted recommendations for your budget and everyday needs.",
 };
 
 export default function RootLayout({ children }) {
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${inter.variable} ${manrope.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-background text-foreground">
-        <Navbar />
-        <main className="w-full flex-1">{children}</main>
-        <Footer />
+        <SiteChrome>{children}</SiteChrome>
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

@@ -1,137 +1,135 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ArrowRight, Menu } from "lucide-react";
+import { BrandMark } from "@/components/layout/BrandMark";
+import { Button } from "@/components/ui/button";
 import {
-  Car,
-  GitCompareArrows,
-  LayoutDashboard,
-  Menu,
-  Sparkles,
-  X,
-} from "lucide-react";
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 
-const links = [
-  { href: "/", label: "Home", icon: Car },
-  { href: "/vehicles", label: "Explore Vehicles", icon: Car },
-  { href: "/compare", label: "Compare", icon: GitCompareArrows },
-  {
-    href: "/recommendations",
-    label: "AI Recommendations",
-    icon: Sparkles,
-  },
-  { href: "/admin", label: "Admin", icon: LayoutDashboard },
+export const NAV_LINKS = [
+  { href: "/", label: "Home" },
+  { href: "/vehicles", label: "Explore Vehicles" },
+  { href: "/compare", label: "Compare" },
+  { href: "/recommendations", label: "AI Recommendations" },
+  { href: "/admin", label: "Admin" },
 ];
 
+function isActive(pathname, href) {
+  return href === "/" ? pathname === "/" : pathname.startsWith(href);
+}
+
 export function Navbar() {
-  const pathname = usePathname();
+  const pathname = usePathname() || "/";
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  useEffect(() => {
-    if (!mobileOpen) return undefined;
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") setMobileOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [mobileOpen]);
-
-  function closeMobile() {
-    setMobileOpen(false);
-  }
-
   return (
-    <header className="sticky top-0 z-40 border-b border-border/80 bg-white/90 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
-        <Link
-          href="/"
-          className="flex items-center gap-2.5 font-semibold tracking-tight text-foreground"
-          onClick={closeMobile}
-        >
-          <span className="flex size-9 items-center justify-center rounded-lg bg-primary text-primary-foreground shadow-sm">
-            <Car className="size-5" aria-hidden="true" />
-          </span>
-          <span className="text-lg">VehicleAI</span>
-        </Link>
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 supports-backdrop-filter:bg-background/85 supports-backdrop-filter:backdrop-blur-md">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-sm"
+      >
+        Skip to content
+      </a>
+      <div className="page-container flex h-16 items-center justify-between gap-6">
+        <BrandMark />
 
-        <nav className="hidden items-center gap-1 md:flex" aria-label="Main">
-          {links.map((link) => {
-            const Icon = link.icon;
-            const active =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(link.href);
-
+        <nav className="hidden h-full items-center gap-1 lg:flex" aria-label="Main">
+          {NAV_LINKS.map((link) => {
+            const active = isActive(pathname, link.href);
             return (
               <Link
                 key={link.href}
                 href={link.href}
+                aria-current={active ? "page" : undefined}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
+                  "relative flex h-full items-center px-3 text-sm font-medium transition-colors",
+                  "after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:rounded-full after:bg-primary after:transition-opacity",
                   active
-                    ? "bg-primary/10 text-primary"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    ? "text-foreground after:opacity-100"
+                    : "text-muted-foreground after:opacity-0 hover:text-foreground"
                 )}
               >
-                <Icon className="size-4 shrink-0" aria-hidden="true" />
                 {link.label}
               </Link>
             );
           })}
         </nav>
 
-        <button
-          type="button"
-          className="inline-flex size-10 items-center justify-center rounded-lg border border-border bg-white text-foreground shadow-sm md:hidden"
-          aria-expanded={mobileOpen}
-          aria-controls="mobile-nav"
-          aria-label={mobileOpen ? "Close menu" : "Open menu"}
-          onClick={() => setMobileOpen((open) => !open)}
-        >
-          {mobileOpen ? (
-            <X className="size-5" aria-hidden="true" />
-          ) : (
+        <div className="hidden lg:block">
+          <Button nativeButton={false} render={<Link href="/recommendations" />}>
+            Get recommendations
+          </Button>
+        </div>
+
+        <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+          <SheetTrigger
+            render={
+              <Button
+                variant="outline"
+                size="icon"
+                className="lg:hidden"
+                aria-label="Open menu"
+              />
+            }
+          >
             <Menu className="size-5" aria-hidden="true" />
-          )}
-        </button>
+          </SheetTrigger>
+          <SheetContent side="right" className="w-[85%] max-w-sm gap-0 bg-background p-0">
+            <SheetHeader className="border-b border-border px-5 py-4">
+              <SheetTitle className="sr-only">Navigation</SheetTitle>
+              <SheetDescription className="sr-only">
+                Main site navigation
+              </SheetDescription>
+              <BrandMark onClick={() => setMobileOpen(false)} />
+            </SheetHeader>
+            <nav className="flex flex-col px-3 py-4" aria-label="Mobile">
+              {NAV_LINKS.map((link) => {
+                const active = isActive(pathname, link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => setMobileOpen(false)}
+                    aria-current={active ? "page" : undefined}
+                    className={cn(
+                      "flex items-center justify-between rounded-lg px-3 py-3.5 font-heading text-lg font-semibold transition-colors",
+                      active
+                        ? "bg-sage text-primary"
+                        : "text-foreground hover:bg-secondary"
+                    )}
+                  >
+                    {link.label}
+                    {active ? (
+                      <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
+                    ) : null}
+                  </Link>
+                );
+              })}
+            </nav>
+            <div className="mt-auto border-t border-border p-5">
+              <Button
+                size="lg"
+                className="w-full"
+                nativeButton={false}
+                render={<Link href="/recommendations" onClick={() => setMobileOpen(false)} />}
+              >
+                Get recommendations
+                <ArrowRight data-icon="inline-end" aria-hidden="true" />
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
       </div>
-
-      {mobileOpen ? (
-        <nav
-          id="mobile-nav"
-          className="border-t border-border bg-white md:hidden"
-          aria-label="Mobile"
-        >
-          <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3 sm:px-6">
-            {links.map((link) => {
-              const Icon = link.icon;
-              const active =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(link.href);
-
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={closeMobile}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors",
-                    active
-                      ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
-                  )}
-                >
-                  <Icon className="size-4 shrink-0" aria-hidden="true" />
-                  {link.label}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-      ) : null}
     </header>
   );
 }

@@ -1,6 +1,5 @@
 /**
- * Lightweight compare shortlist (localStorage).
- * Phase 6 will own the full compare UI; this only stores up to 3 vehicle IDs.
+ * Lightweight compare shortlist (localStorage). Stores up to 3 vehicle IDs.
  */
 
 const STORAGE_KEY = "vehicleai_compare_ids";
@@ -82,6 +81,25 @@ export function isInCompare(id) {
   const vehicleId = normalizeId(id);
   if (vehicleId == null) return false;
   return getCompareIds().includes(vehicleId);
+}
+
+/**
+ * `useSyncExternalStore` subscription for compare list changes in this tab
+ * and in other tabs.
+ * @param {() => void} callback
+ */
+export function subscribeCompare(callback) {
+  window.addEventListener("storage", callback);
+  window.addEventListener("vehicleai:compare-change", callback);
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener("vehicleai:compare-change", callback);
+  };
+}
+
+/** Stable string snapshot of the compare list, e.g. "3,7". */
+export function getCompareSnapshot() {
+  return getCompareIds().join(",");
 }
 
 /**

@@ -12,18 +12,22 @@ export function ErrorState({
   return (
     <div
       className={cn(
-        "flex flex-col items-center justify-center gap-3 rounded-xl border border-destructive/30 bg-destructive/5 px-6 py-12 text-center",
+        "flex flex-col items-center justify-center gap-3 rounded-xl border border-destructive/25 bg-destructive/[0.04] px-6 py-12 text-center",
         className
       )}
       role="alert"
     >
-      <AlertCircle className="size-8 text-destructive" aria-hidden="true" />
-      <div className="space-y-1">
-        <h3 className="font-medium text-foreground">{title}</h3>
-        <p className="max-w-sm text-sm text-muted-foreground">{description}</p>
+      <span className="flex size-11 items-center justify-center rounded-full bg-destructive/10 text-destructive">
+        <AlertCircle className="size-5" aria-hidden="true" />
+      </span>
+      <div className="space-y-1.5">
+        <h3 className="font-heading text-lg font-semibold text-foreground">{title}</h3>
+        <p className="mx-auto max-w-md text-sm leading-relaxed break-words text-muted-foreground">
+          {description}
+        </p>
       </div>
       {typeof onRetry === "function" ? (
-        <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+        <Button type="button" variant="outline" onClick={onRetry}>
           {retryLabel}
         </Button>
       ) : null}

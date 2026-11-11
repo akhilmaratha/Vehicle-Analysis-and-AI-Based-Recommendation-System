@@ -78,7 +78,7 @@ export default function VehicleDetailPage() {
   }, [fetchKey, invalidId, vehicleId]);
 
   return (
-    <div className="page-container section-y">
+    <div className="page-container pt-8 pb-16 sm:pt-10 sm:pb-20">
       {notFound ? (
         <EmptyState
           title="Vehicle not found"
@@ -90,7 +90,7 @@ export default function VehicleDetailPage() {
               nativeButton={false}
               render={<Link href="/vehicles" />}
             >
-              Back to Vehicles
+              Back to vehicles
             </Button>
           }
         />

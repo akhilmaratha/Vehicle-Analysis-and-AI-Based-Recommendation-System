@@ -2,21 +2,19 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { Loader2, RotateCcw } from "lucide-react";
 import { NaturalLanguagePreferenceInput } from "@/components/recommendations/NaturalLanguagePreferenceInput";
 import { ExtractedPreferencesEditor } from "@/components/recommendations/ExtractedPreferencesEditor";
 import { FollowUpInput } from "@/components/recommendations/FollowUpInput";
 import { RecommendationCard } from "@/components/recommendations/RecommendationCard";
 import { VehicleSearchForm } from "@/components/vehicles/VehicleSearchForm";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { LoadingSpinner } from "@/components/LoadingSpinner";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   extractPreferences,
   getAiRecommendations,
@@ -24,6 +22,7 @@ import {
   explainRecommendations,
 } from "@/lib/api";
 import { formatPrice } from "@/lib/format";
+import { cn } from "@/lib/utils";
 
 function prefsFromSearchParams(searchParams) {
   if (!searchParams) return null;
@@ -48,24 +47,118 @@ function summarizePreferences(preferences) {
   const rows = [];
   if (preferences.budget_min != null || preferences.budget_max != null) {
     const min =
-      preferences.budget_min != null ? formatPrice(preferences.budget_min) : "—";
+      preferences.budget_min != null ? formatPrice(preferences.budget_min) : null;
     const max =
-      preferences.budget_max != null ? formatPrice(preferences.budget_max) : "—";
-    rows.push(`Budget: ${min} – ${max}`);
+      preferences.budget_max != null ? formatPrice(preferences.budget_max) : null;
+    rows.push({
+      label: "Budget",
+      value: min && max ? `${min} – ${max}` : max ? `Up to ${max}` : `From ${min}`,
+    });
   }
-  if (preferences.vehicle_type) rows.push(`Type: ${preferences.vehicle_type}`);
-  if (preferences.fuel_type) rows.push(`Fuel: ${preferences.fuel_type}`);
+  if (preferences.vehicle_type) rows.push({ label: "Type", value: preferences.vehicle_type });
+  if (preferences.fuel_type) rows.push({ label: "Fuel", value: preferences.fuel_type });
   if (preferences.transmission)
-    rows.push(`Transmission: ${preferences.transmission}`);
+    rows.push({ label: "Transmission", value: preferences.transmission });
   if (preferences.seating_capacity != null)
-    rows.push(`Seats ≥ ${preferences.seating_capacity}`);
+    rows.push({ label: "Seats", value: `${preferences.seating_capacity}+` });
   if (preferences.preferred_mileage != null)
-    rows.push(`Preferred mileage: ${preferences.preferred_mileage}`);
+    rows.push({ label: "Mileage", value: `${preferences.preferred_mileage} km/l` });
   if (preferences.preferred_safety_rating != null)
-    rows.push(`Preferred safety: ${preferences.preferred_safety_rating}`);
+    rows.push({ label: "Safety", value: `${preferences.preferred_safety_rating} / 5` });
   if (preferences.priorities?.length)
-    rows.push(`Priorities: ${preferences.priorities.join(", ")}`);
+    rows.push({
+      label: "Priorities",
+      value: preferences.priorities
+        .map((p) => p.charAt(0).toUpperCase() + p.slice(1))
+        .join(", "),
+    });
   return rows;
+}
+
+const LOADING_COPY = {
+  extract: "Reading your request and pulling out your preferences…",
+  rank: "Ranking catalog vehicles against your preferences…",
+  refine: "Updating your recommendations…",
+};
+
+function StepIndicator({ steps, current }) {
+  return (
+    <ol className="flex flex-wrap items-center gap-x-2 gap-y-2 text-sm" aria-label="Progress">
+      {steps.map((step, index) => {
+        const state = index < current ? "done" : index === current ? "current" : "upcoming";
+        return (
+          <li key={step} className="flex items-center gap-2">
+            <span
+              className={cn(
+                "flex size-6 items-center justify-center rounded-full font-heading text-xs font-bold tabular",
+                state === "current" && "bg-primary text-primary-foreground",
+                state === "done" && "bg-sage text-primary",
+                state === "upcoming" && "border border-input text-muted-foreground"
+              )}
+              aria-hidden="true"
+            >
+              {index + 1}
+            </span>
+            <span
+              className={cn(
+                "font-medium",
+                state === "upcoming" ? "text-muted-foreground" : "text-foreground"
+              )}
+              aria-current={state === "current" ? "step" : undefined}
+            >
+              {step}
+            </span>
+            {index < steps.length - 1 ? (
+              <span className="mx-1 h-px w-6 bg-border sm:w-10" aria-hidden="true" />
+            ) : null}
+          </li>
+        );
+      })}
+    </ol>
+  );
+}
+
+function LoadingPanel({ kind }) {
+  return (
+    <div className="space-y-5" aria-busy="true">
+      <div
+        className="flex items-center gap-3 rounded-xl border border-border bg-card px-5 py-4"
+        role="status"
+        aria-live="polite"
+      >
+        <Loader2 className="size-4 animate-spin text-primary" aria-hidden="true" />
+        <p className="text-sm text-foreground/80">{LOADING_COPY[kind] || LOADING_COPY.rank}</p>
+      </div>
+      {kind === "extract" ? (
+        <div className="space-y-4 rounded-xl border border-border bg-card p-5 sm:p-7">
+          <Skeleton className="h-5 w-40" />
+          <div className="grid gap-4 sm:grid-cols-3">
+            {Array.from({ length: 6 }, (_, i) => (
+              <Skeleton key={i} className="h-10 w-full" />
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="space-y-5">
+          {Array.from({ length: 2 }, (_, i) => (
+            <div
+              key={i}
+              className="grid overflow-hidden rounded-xl border border-border bg-card md:grid-cols-[0.8fr_1.2fr]"
+            >
+              <Skeleton className="aspect-[16/10] rounded-none md:aspect-auto md:min-h-64" />
+              <div className="space-y-4 p-5 sm:p-7">
+                <Skeleton className="h-3 w-20" />
+                <Skeleton className="h-7 w-2/3" />
+                <Skeleton className="h-16 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-4/5" />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function RecommendationsPageInner() {
@@ -75,7 +168,7 @@ function RecommendationsPageInner() {
     [searchParams]
   );
 
-  const [mode, setMode] = useState("nl"); // nl | structured
+  const [mode, setMode] = useState(() => (formInitial ? "structured" : "nl")); // nl | structured
   const [nlText, setNlText] = useState("");
   const [followUp, setFollowUp] = useState("");
   const [phase, setPhase] = useState("input"); // input | confirm | results
@@ -89,16 +182,18 @@ function RecommendationsPageInner() {
   const [comparisonSummary, setComparisonSummary] = useState("");
   const [alternativesSummary, setAlternativesSummary] = useState("");
   const [statusMessage, setStatusMessage] = useState("");
+  const [loadingKind, setLoadingKind] = useState("rank");
   const abortRef = useRef(null);
 
   useEffect(() => {
     return () => abortRef.current?.abort();
   }, []);
 
-  const beginRequest = useCallback(() => {
+  const beginRequest = useCallback((kind = "rank") => {
     abortRef.current?.abort();
     const controller = new AbortController();
     abortRef.current = controller;
+    setLoadingKind(kind);
     setLoading(true);
     setError(null);
     return controller;
@@ -106,7 +201,7 @@ function RecommendationsPageInner() {
 
   const handleExtract = useCallback(
     async (message) => {
-      const controller = beginRequest();
+      const controller = beginRequest("extract");
       try {
         const result = await extractPreferences(
           { message },
@@ -189,7 +284,7 @@ function RecommendationsPageInner() {
         setError("Confirm preferences first, then refine with a follow-up.");
         return;
       }
-      const controller = beginRequest();
+      const controller = beginRequest("refine");
       try {
         const result = await getAiRecommendations(
           {
@@ -284,52 +379,73 @@ function RecommendationsPageInner() {
     [beginRequest]
   );
 
+  function handleStartOver() {
+    setPhase("input");
+    setRecommendations([]);
+    setAlternatives([]);
+    setComparisonSummary("");
+    setAlternativesSummary("");
+    setFollowUp("");
+  }
+
   const preferenceRows = summarizePreferences(currentPreferences || draftPreferences);
 
+  const steps = mode === "nl" ? ["Describe", "Confirm", "Results"] : ["Preferences", "Results"];
+  const currentStep =
+    phase === "results"
+      ? steps.length - 1
+      : mode === "nl" && phase === "confirm"
+        ? 1
+        : 0;
+
+  const showInputs = !loading && phase !== "results";
+
   return (
-    <div className="page-container space-y-6 py-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight">
-            Recommendations
-          </h1>
-          <p className="mt-1 text-muted-foreground">
-            Natural-language preferences with AI explanations. Ranking stays on
-            the existing Python pipeline.
-          </p>
-        </div>
-        <div className="flex gap-2">
-          <Button
-            type="button"
-            variant={mode === "nl" ? "default" : "outline"}
-            onClick={() => setMode("nl")}
-            disabled={loading}
+    <div className="page-container space-y-10 pt-10 pb-16 sm:pt-14 sm:pb-20">
+      <PageHeader
+        eyebrow="AI recommendations"
+        title="Let’s find the right car for you"
+        description="Tell us what you need in your own words or with a quick form. We confirm the details with you, then rank real catalog vehicles and explain each pick."
+      />
+
+      <div className="flex flex-col gap-4 border-y border-border py-4 sm:flex-row sm:items-center sm:justify-between">
+        <StepIndicator steps={steps} current={currentStep} />
+        {phase !== "results" ? (
+          <Tabs
+            value={mode}
+            onValueChange={(next) => {
+              if (!loading) setMode(next);
+            }}
           >
-            Natural language
+            <TabsList className="h-10! bg-secondary p-1">
+              <TabsTrigger value="nl" disabled={loading} className="px-3">
+                Describe it
+              </TabsTrigger>
+              <TabsTrigger value="structured" disabled={loading} className="px-3">
+                Use a form
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        ) : (
+          <Button type="button" variant="ghost" onClick={handleStartOver} disabled={loading}>
+            <RotateCcw data-icon="inline-start" aria-hidden="true" />
+            Start over
           </Button>
-          <Button
-            type="button"
-            variant={mode === "structured" ? "default" : "outline"}
-            onClick={() => setMode("structured")}
-            disabled={loading}
-          >
-            Structured form
-          </Button>
-        </div>
+        )}
       </div>
 
       {error ? (
         <ErrorState
-          title="Something went wrong"
+          title="We could not complete that request"
           description={error}
           onRetry={() => setError(null)}
           retryLabel="Dismiss"
         />
       ) : null}
 
-      {loading ? <LoadingSpinner label="Working with the recommendation API…" /> : null}
+      {loading && phase !== "results" ? <LoadingPanel kind={loadingKind} /> : null}
 
-      {mode === "nl" && phase === "input" && !loading ? (
+      {mode === "nl" && phase === "input" && showInputs ? (
         <NaturalLanguagePreferenceInput
           value={nlText}
           onChange={setNlText}
@@ -338,25 +454,21 @@ function RecommendationsPageInner() {
         />
       ) : null}
 
-      {mode === "nl" && phase === "confirm" && !loading ? (
-        <div className="space-y-3">
-          {statusMessage ? (
-            <p className="text-sm text-muted-foreground">{statusMessage}</p>
-          ) : null}
-          <ExtractedPreferencesEditor
-            preferences={draftPreferences}
-            clarificationQuestions={clarificationQuestions}
-            onConfirm={handleConfirmPreferences}
-            onCancel={() => {
-              setPhase("input");
-              setClarificationQuestions([]);
-            }}
-            disabled={loading}
-          />
-        </div>
+      {mode === "nl" && phase === "confirm" && showInputs ? (
+        <ExtractedPreferencesEditor
+          preferences={draftPreferences}
+          clarificationQuestions={clarificationQuestions}
+          statusMessage={statusMessage}
+          onConfirm={handleConfirmPreferences}
+          onCancel={() => {
+            setPhase("input");
+            setClarificationQuestions([]);
+          }}
+          disabled={loading}
+        />
       ) : null}
 
-      {mode === "structured" && phase !== "results" && !loading ? (
+      {mode === "structured" && showInputs ? (
         <VehicleSearchForm
           onSubmit={handleStructuredSubmit}
           disabled={loading}
@@ -365,100 +477,129 @@ function RecommendationsPageInner() {
       ) : null}
 
       {phase === "results" ? (
-        <div className="space-y-6">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between gap-2">
-              <CardTitle>Your requirements</CardTitle>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setPhase(mode === "nl" ? "confirm" : "input");
-                }}
-                disabled={loading}
-              >
-                Edit preferences
-              </Button>
-            </CardHeader>
-            <CardContent className="space-y-1 text-sm">
+        <div className="space-y-12">
+          <section
+            aria-label="Your requirements"
+            className="grid gap-6 rounded-xl border border-border bg-card p-5 sm:p-7 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1fr)] lg:gap-10"
+          >
+            <div className="space-y-4">
+              <div className="flex items-center justify-between gap-3">
+                <h2 className="font-heading text-lg font-bold">Your requirements</h2>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    setPhase(mode === "nl" ? "confirm" : "input");
+                  }}
+                  disabled={loading}
+                >
+                  Edit
+                </Button>
+              </div>
               {preferenceRows.length ? (
-                preferenceRows.map((row) => <p key={row}>{row}</p>)
+                <ul className="flex flex-wrap gap-2">
+                  {preferenceRows.map((row) => (
+                    <li
+                      key={row.label}
+                      className="rounded-md bg-sage px-2.5 py-1.5 text-sm text-primary"
+                    >
+                      <span className="text-primary/70">{row.label}:</span>{" "}
+                      <span className="font-medium">{row.value}</span>
+                    </li>
+                  ))}
+                </ul>
               ) : (
-                <p className="text-muted-foreground">No preferences set.</p>
+                <p className="text-sm text-muted-foreground">No preferences set.</p>
               )}
-            </CardContent>
-          </Card>
-
-          <FollowUpInput
-            value={followUp}
-            onChange={setFollowUp}
-            onSubmit={handleFollowUp}
-            disabled={loading || !currentPreferences}
-          />
-
-          {comparisonSummary ? (
-            <Card>
-              <CardHeader>
-                <CardTitle>How these differ</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground">{comparisonSummary}</p>
-              </CardContent>
-            </Card>
-          ) : null}
-
-          <div>
-            <h2 className="mb-4 text-xl font-semibold">Recommended vehicles</h2>
-            {recommendations.length === 0 ? (
-              <EmptyState
-                title="No matches"
-                description={
-                  statusMessage ||
-                  "No vehicles matched the mandatory filters. Try relaxing budget or type."
-                }
-              />
-            ) : (
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {recommendations.map((item) => (
-                  <RecommendationCard key={item.id} recommendation={item} />
-                ))}
-              </div>
-            )}
-          </div>
-
-          {alternatives.length > 0 ? (
-            <div>
-              <h2 className="mb-2 text-xl font-semibold">Alternatives</h2>
-              {alternativesSummary ? (
-                <p className="mb-4 text-sm text-muted-foreground">
-                  {alternativesSummary}
-                </p>
-              ) : null}
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {alternatives.map((item) => (
-                  <RecommendationCard key={item.id} recommendation={item} />
-                ))}
-              </div>
             </div>
-          ) : null}
+            <div className="lg:border-l lg:border-border lg:pl-10">
+              <FollowUpInput
+                value={followUp}
+                onChange={setFollowUp}
+                onSubmit={handleFollowUp}
+                disabled={loading || !currentPreferences}
+              />
+            </div>
+          </section>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setPhase("input");
-                setRecommendations([]);
-                setAlternatives([]);
-                setComparisonSummary("");
-                setAlternativesSummary("");
-                setFollowUp("");
-              }}
-            >
-              Start over
-            </Button>
-          </div>
+          {loading ? (
+            <LoadingPanel kind={loadingKind} />
+          ) : (
+            <>
+              <section aria-labelledby="top-picks-heading" className="space-y-6">
+                <div className="space-y-2">
+                  <p className="eyebrow">Top recommendations</p>
+                  <h2 id="top-picks-heading" className="font-heading text-2xl font-bold sm:text-3xl">
+                    {recommendations.length
+                      ? `Your ${recommendations.length === 1 ? "best match" : `top ${recommendations.length} matches`}`
+                      : "No matches yet"}
+                  </h2>
+                  {statusMessage && recommendations.length ? (
+                    <p className="max-w-3xl text-sm text-muted-foreground">{statusMessage}</p>
+                  ) : null}
+                </div>
+
+                {comparisonSummary && recommendations.length > 1 ? (
+                  <div className="max-w-4xl border-l-2 border-primary pl-5">
+                    <p className="font-heading text-sm font-bold">How these compare</p>
+                    <p className="mt-1.5 text-sm leading-relaxed text-foreground/80">
+                      {comparisonSummary}
+                    </p>
+                  </div>
+                ) : null}
+
+                {recommendations.length === 0 ? (
+                  <EmptyState
+                    title="No vehicles matched your requirements"
+                    description={
+                      statusMessage ||
+                      "No vehicles matched the mandatory filters. Try relaxing your budget, fuel or body type."
+                    }
+                    action={
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setPhase(mode === "nl" ? "confirm" : "input")}
+                      >
+                        Adjust preferences
+                      </Button>
+                    }
+                  />
+                ) : (
+                  <div className="space-y-5">
+                    {recommendations.map((item) => (
+                      <RecommendationCard key={item.id} recommendation={item} />
+                    ))}
+                  </div>
+                )}
+              </section>
+
+              {alternatives.length > 0 ? (
+                <section
+                  aria-labelledby="alternatives-heading"
+                  className="space-y-6 rounded-2xl bg-surface/70 p-5 sm:p-8"
+                >
+                  <div className="max-w-3xl space-y-2">
+                    <p className="eyebrow">Also worth a look</p>
+                    <h2 id="alternatives-heading" className="font-heading text-2xl font-bold">
+                      Alternatives
+                    </h2>
+                    {alternativesSummary ? (
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {alternativesSummary}
+                      </p>
+                    ) : null}
+                  </div>
+                  <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                    {alternatives.map((item) => (
+                      <RecommendationCard key={item.id} recommendation={item} variant="compact" />
+                    ))}
+                  </div>
+                </section>
+              ) : null}
+            </>
+          )}
         </div>
       ) : null}
     </div>

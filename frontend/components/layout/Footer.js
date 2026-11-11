@@ -1,15 +1,13 @@
 import Link from "next/link";
-import { Car } from "lucide-react";
+import { BrandMark } from "@/components/layout/BrandMark";
 
-const navLinks = [
-  { href: "/", label: "Home" },
+const exploreLinks = [
   { href: "/vehicles", label: "Explore Vehicles" },
   { href: "/compare", label: "Compare" },
   { href: "/recommendations", label: "AI Recommendations" },
-  { href: "/admin", label: "Admin" },
 ];
 
-const vehicleLinks = [
+const categoryLinks = [
   { href: "/vehicles?vehicle_type=Hatchback", label: "Hatchbacks" },
   { href: "/vehicles?vehicle_type=Sedan", label: "Sedans" },
   { href: "/vehicles?vehicle_type=SUV", label: "SUVs" },
@@ -17,65 +15,52 @@ const vehicleLinks = [
   { href: "/vehicles?fuel_type=Electric", label: "Electric" },
 ];
 
+const manageLinks = [
+  { href: "/admin", label: "Admin dashboard" },
+  { href: "/admin/vehicles", label: "Manage vehicles" },
+];
+
+function FooterColumn({ title, links }) {
+  return (
+    <div>
+      <h2 className="font-heading text-sm font-bold text-card">{title}</h2>
+      <ul className="mt-4 space-y-2.5 text-sm">
+        {links.map((link) => (
+          <li key={link.href}>
+            <Link
+              href={link.href}
+              className="text-card/70 transition-colors hover:text-card"
+            >
+              {link.label}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="mt-auto border-t border-border bg-slate-50">
-      <div className="mx-auto grid max-w-6xl gap-10 px-4 py-12 sm:px-6 md:grid-cols-3">
-        <div className="space-y-3">
-          <div className="flex items-center gap-2 font-semibold text-foreground">
-            <span className="flex size-8 items-center justify-center rounded-md bg-primary text-primary-foreground">
-              <Car className="size-4" aria-hidden="true" />
-            </span>
-            VehicleAI
-          </div>
-          <p className="max-w-xs text-sm leading-relaxed text-muted-foreground">
-            Search, compare, and discover vehicles that match your budget,
-            lifestyle, and priorities — with AI-assisted recommendations.
+    <footer className="mt-auto bg-primary text-card">
+      <div className="page-container grid gap-12 py-14 md:grid-cols-[1.4fr_1fr_1fr_1fr] md:gap-8">
+        <div className="max-w-sm space-y-4">
+          <BrandMark tone="inverse" />
+          <p className="text-sm leading-relaxed text-card/70">
+            A calmer way to choose a car. Browse a real catalog, compare the
+            details side by side, and get recommendations ranked against your
+            budget and everyday needs.
           </p>
         </div>
-
-        <div>
-          <h3 className="mb-3 text-sm font-semibold text-foreground">
-            Navigation
-          </h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            {navLinks.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="transition-colors hover:text-foreground"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div>
-          <h3 className="mb-3 text-sm font-semibold text-foreground">
-            Browse by type
-          </h3>
-          <ul className="space-y-2 text-sm text-muted-foreground">
-            {vehicleLinks.map((link) => (
-              <li key={link.href}>
-                <Link
-                  href={link.href}
-                  className="transition-colors hover:text-foreground"
-                >
-                  {link.label}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <FooterColumn title="Explore" links={exploreLinks} />
+        <FooterColumn title="Categories" links={categoryLinks} />
+        <FooterColumn title="Manage" links={manageLinks} />
       </div>
-
-      <div className="border-t border-border">
-        <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-4 text-sm text-muted-foreground sm:flex-row sm:items-center sm:justify-between sm:px-6">
-          <p>© {year} VehicleAI. All rights reserved.</p>
+      <div className="border-t border-card/15">
+        <div className="page-container flex flex-col gap-1 py-5 text-xs text-card/60 sm:flex-row sm:items-center sm:justify-between">
+          <p>&copy; {year} VehicleAI. All rights reserved.</p>
           <p>Vehicle Analysis and AI-Based Recommendation System</p>
         </div>
       </div>

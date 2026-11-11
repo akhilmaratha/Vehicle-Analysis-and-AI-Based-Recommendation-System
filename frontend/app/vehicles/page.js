@@ -16,6 +16,7 @@ import { VehiclePagination } from "@/components/vehicles/VehiclePagination";
 import { VehicleGrid } from "@/components/vehicles/VehicleGrid";
 import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
+import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { getVehicles } from "@/lib/api";
 
@@ -216,6 +217,7 @@ function VehiclesPageContent() {
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
   const debounceRef = useRef(null);
   const isDesktopRef = useRef(false);
+  const resultsRef = useRef(null);
 
   useEffect(() => {
     const mq = window.matchMedia("(min-width: 1024px)");
@@ -395,31 +397,21 @@ function VehiclesPageContent() {
   function goToPage(nextPage) {
     if (nextPage < 1 || nextPage > pages) return;
     syncUrl(urlFilters, nextPage);
+    resultsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   }
 
   const activeFilters = hasFilterValues(urlFilters);
 
   return (
-    <div className="page-container section-y space-y-8">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-foreground">
-            Explore Vehicles
-          </h1>
-          <p className="mt-1 max-w-2xl text-muted-foreground">
-            Browse the catalog with filters for brand, fuel, transmission, body
-            type, price, mileage, and seating. Results use live API data.
-          </p>
-        </div>
-        {!loading && !error ? (
-          <p className="text-sm font-medium text-muted-foreground">
-            {total} vehicle{total === 1 ? "" : "s"} found
-          </p>
-        ) : null}
-      </div>
+    <div className="page-container space-y-8 pt-10 pb-16 sm:pt-14 sm:pb-20">
+      <PageHeader
+        eyebrow="Catalog"
+        title="Explore vehicles"
+        description="Browse the full catalog and narrow it down by brand, budget, fuel, transmission, body type, mileage and seating."
+      />
 
-      <div className="grid gap-8 lg:grid-cols-[272px_minmax(0,1fr)]">
-        <aside className="lg:sticky lg:top-20 lg:self-start">
+      <div className="grid gap-8 lg:grid-cols-[288px_minmax(0,1fr)] lg:gap-10">
+        <aside className="lg:sticky lg:top-24 lg:max-h-[calc(100vh-7rem)] lg:self-start lg:overflow-y-auto lg:pb-2">
           <VehicleFilters
             filters={draftFilters}
             onChange={handleFilterChange}
@@ -431,20 +423,34 @@ function VehiclesPageContent() {
           />
         </aside>
 
-        <div className="space-y-6">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <ActiveFilterChips
-              filters={urlFilters}
-              onClear={handleClearFilter}
-              onResetAll={activeFilters ? handleResetFilters : undefined}
-            />
+        <div ref={resultsRef} className="min-w-0 scroll-mt-24 space-y-6">
+          <div className="flex flex-col gap-4 border-b border-border pb-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-heading text-base font-semibold tabular" aria-live="polite">
+              {loading && !error ? (
+                <span className="text-muted-foreground">Loading vehicles…</span>
+              ) : error ? (
+                <span className="text-muted-foreground">Results unavailable</span>
+              ) : (
+                <>
+                  {total} vehicle{total === 1 ? "" : "s"}
+                  <span className="font-normal text-muted-foreground">
+                    {activeFilters ? " match your filters" : " in the catalog"}
+                  </span>
+                </>
+              )}
+            </p>
             <VehicleSort
               value={sortValueFromFilters(urlFilters)}
               onChange={handleSortChange}
               disabled={loading && !error}
-              className="sm:ml-auto"
             />
           </div>
+
+          <ActiveFilterChips
+            filters={urlFilters}
+            onClear={handleClearFilter}
+            onResetAll={activeFilters ? handleResetFilters : undefined}
+          />
 
           {Object.keys(validationErrors).length > 0 ? (
             <p className="text-sm text-destructive" role="alert">
@@ -466,8 +472,8 @@ function VehiclesPageContent() {
               title="No vehicles match your filters"
               description={
                 activeFilters
-                  ? "Try broadening your criteria or reset filters to see the full catalog."
-                  : "The catalog is empty right now. Add vehicles from Admin when ready."
+                  ? "Try widening your budget or removing a filter or two to see more of the catalog."
+                  : "The catalog is empty right now. Vehicles added from Admin will appear here."
               }
               action={
                 activeFilters ? (
@@ -476,7 +482,7 @@ function VehiclesPageContent() {
                     variant="outline"
                     onClick={handleResetFilters}
                   >
-                    Reset Filters
+                    Clear all filters
                   </Button>
                 ) : null
               }
@@ -504,7 +510,7 @@ export default function VehiclesPage() {
   return (
     <Suspense
       fallback={
-        <div className="page-container section-y">
+        <div className="page-container pt-10 pb-16 sm:pt-14">
           <VehicleGrid loading skeletonCount={DEFAULT_LIMIT} />
         </div>
       }

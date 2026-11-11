@@ -20,18 +20,18 @@ export function VehicleSearch({
 }) {
   return (
     <div className={cn("space-y-2", className)}>
-      <Label htmlFor={id}>Search by brand</Label>
+      <Label htmlFor={id}>Brand</Label>
       <div className="relative">
         <Search
-          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+          className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
           aria-hidden="true"
         />
         <Input
           id={id}
           type="search"
           autoComplete="off"
-          placeholder="Exact brand match (e.g. Hyundai)"
-          className="pl-8"
+          placeholder="e.g. Hyundai"
+          className="pl-9"
           value={value}
           disabled={disabled}
           onChange={(e) => onChange?.(e.target.value)}
@@ -39,7 +39,7 @@ export function VehicleSearch({
         />
       </div>
       <p id={`${id}-hint`} className="text-xs text-muted-foreground">
-        API supports exact brand filter only — no model or free-text search yet.
+        Matches the full brand name.
       </p>
     </div>
   );

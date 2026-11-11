@@ -1,10 +1,8 @@
 "use client";
 
+import { FieldSelect } from "@/components/forms/FieldSelect";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-
-const selectClassName =
-  "h-8 w-full rounded-lg border border-input bg-transparent px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 sm:w-auto sm:min-w-[220px]";
 
 /**
  * Backend-supported sort presets:
@@ -14,25 +12,25 @@ const selectClassName =
 export const SORT_PRESETS = [
   {
     value: "created_at:desc",
-    label: "Newest First",
+    label: "Newest first",
     sort_by: "created_at",
     sort_order: "desc",
   },
   {
     value: "price:asc",
-    label: "Price: Low → High",
+    label: "Price: low to high",
     sort_by: "price",
     sort_order: "asc",
   },
   {
     value: "price:desc",
-    label: "Price: High → Low",
+    label: "Price: high to low",
     sort_by: "price",
     sort_order: "desc",
   },
   {
     value: "mileage:desc",
-    label: "Mileage: High → Low",
+    label: "Mileage: highest first",
     sort_by: "mileage",
     sort_order: "desc",
   },
@@ -63,24 +61,18 @@ export function VehicleSort({
   disabled = false,
 }) {
   return (
-    <div className={cn("flex flex-col gap-1.5 sm:flex-row sm:items-center", className)}>
-      <Label htmlFor={id} className="shrink-0 text-sm">
-        Sort
+    <div className={cn("flex items-center gap-2.5", className)}>
+      <Label htmlFor={id} className="shrink-0 text-sm text-muted-foreground">
+        Sort by
       </Label>
-      <select
+      <FieldSelect
         id={id}
-        className={selectClassName}
         value={value || "created_at:desc"}
+        onChange={(next) => onChange?.(next || "created_at:desc")}
+        options={SORT_PRESETS.map(({ value: v, label }) => ({ value: v, label }))}
         disabled={disabled}
-        onChange={(e) => onChange?.(e.target.value)}
-        aria-label="Sort vehicles"
-      >
-        {SORT_PRESETS.map((preset) => (
-          <option key={preset.value} value={preset.value}>
-            {preset.label}
-          </option>
-        ))}
-      </select>
+        className="min-w-0 sm:w-56"
+      />
     </div>
   );
 }

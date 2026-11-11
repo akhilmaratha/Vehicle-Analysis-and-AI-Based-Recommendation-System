@@ -27,6 +27,9 @@ function formatChipValue(key, value) {
       }).format(n);
     }
   }
+  if (key === "min_mileage" || key === "max_mileage") {
+    return `${value} km/l`;
+  }
   return String(value);
 }
 
@@ -60,30 +63,30 @@ export function ActiveFilterChips({
       {chips.map((chip) => (
         <span
           key={chip.key}
-          className="inline-flex items-center gap-1 rounded-full border border-border bg-secondary/70 py-0.5 pr-1 pl-2.5 text-xs font-medium text-foreground"
+          className="inline-flex h-8 items-center gap-1 rounded-md border border-primary/15 bg-sage py-0.5 pr-1 pl-2.5 text-xs font-medium text-primary"
         >
           <span>
-            {chip.label}: {chip.value}
+            <span className="text-primary/70">{chip.label}:</span> {chip.value}
           </span>
           <button
             type="button"
-            className="inline-flex size-5 items-center justify-center rounded-full text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            className="inline-flex size-6 items-center justify-center rounded text-primary/70 hover:bg-primary/10 hover:text-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
             onClick={() => onClear?.(chip.key)}
             aria-label={`Clear ${chip.label} filter`}
           >
-            <X className="size-3" aria-hidden="true" />
+            <X className="size-3.5" aria-hidden="true" />
           </button>
         </span>
       ))}
       {typeof onResetAll === "function" ? (
         <Button
           type="button"
-          variant="ghost"
-          size="xs"
+          variant="link"
+          size="sm"
+          className="px-1 text-muted-foreground hover:text-foreground"
           onClick={onResetAll}
-          aria-label="Reset all filters"
         >
-          Reset All
+          Clear all
         </Button>
       ) : null}
     </div>

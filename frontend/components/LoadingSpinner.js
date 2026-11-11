@@ -11,14 +11,14 @@ export function LoadingSpinner({
   return (
     <div
       className={cn(
-        "flex items-center justify-center gap-2 py-10 text-muted-foreground",
+        "flex items-center justify-center gap-2.5 py-10 text-muted-foreground",
         className
       )}
       role="status"
       aria-live="polite"
       aria-busy="true"
     >
-      <Loader2 className={cn(iconSize, "animate-spin")} aria-hidden="true" />
+      <Loader2 className={cn(iconSize, "animate-spin text-primary")} aria-hidden="true" />
       <span className="text-sm">{label}</span>
     </div>
   );
