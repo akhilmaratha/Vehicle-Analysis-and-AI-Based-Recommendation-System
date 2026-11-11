@@ -108,6 +108,21 @@ def _classify_sdk_error(exc: BaseException) -> GeminiError:
             code="gemini_model_unavailable",
         )
 
+    if any(
+        token in lowered
+        for token in (
+            "503",
+            "unavailable",
+            "high demand",
+            "temporarily",
+            "service unavailable",
+        )
+    ):
+        return GeminiError(
+            "Gemini API is temporarily unavailable. Please try again shortly.",
+            code="gemini_unavailable",
+        )
+
     return GeminiError(f"Gemini API request failed: {detail}")
 
 

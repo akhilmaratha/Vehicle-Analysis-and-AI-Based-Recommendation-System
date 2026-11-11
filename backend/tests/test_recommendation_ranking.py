@@ -367,7 +367,7 @@ class TestServiceTopFiveAndAlternatives:
         assert result.recommendations_count == 3
         assert result.alternatives == []
         assert result.fewer_than_five_eligible is True
-        assert "Fewer than 5" in result.message
+        assert "no extra alternatives" in result.message.lower()
 
 
 # ---------------------------------------------------------------------------

@@ -29,3 +29,26 @@ python scripts/seed_vehicles.py
 ```
 
 Re-running the script skips duplicates and only inserts new variants.
+
+Optional `--replace` deletes matching brand/model/variant rows then re-inserts.
+**Avoid `--replace` against production data.**
+
+## Phase 6.3 API smoke
+
+With FastAPI running:
+
+```bash
+python scripts/phase63_api_smoke.py
+```
+
+Creates and deletes one temporary admin vehicle; does not wipe the database.
+
+## Phase 6.4 / 6.5 readiness
+
+```bash
+python scripts/phase64_db_verify.py
+python scripts/phase65_demo_verify.py
+```
+
+Local demo startup docs: `docs/LOCAL_DEMO.md`  
+Helper scripts (from repo root): `scripts/start-local.ps1`, `scripts/stop-local.ps1`

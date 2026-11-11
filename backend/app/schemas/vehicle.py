@@ -1,5 +1,6 @@
 from datetime import datetime
 from typing import Any, Dict, List, Literal, Optional, Union
+from urllib.parse import urlparse
 
 from pydantic import (
     BaseModel,
@@ -11,6 +12,19 @@ from pydantic import (
 )
 
 from app.utils.vehicle_slug import build_vehicle_slug
+
+
+def _validate_optional_http_url(value: Optional[str]) -> Optional[str]:
+    """Allow only http(s) image URLs; blank → None. Blocks javascript:/data: schemes."""
+    if value is None:
+        return None
+    stripped = value.strip()
+    if not stripped:
+        return None
+    parsed = urlparse(stripped)
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        raise ValueError("image_url must be an absolute http(s) URL")
+    return stripped
 
 
 FuelType = Literal["Petrol", "Diesel", "CNG", "Electric", "Hybrid"]
@@ -70,13 +84,18 @@ class VehicleBase(BaseModel):
             raise ValueError("must be a non-empty string")
         return stripped
 
-    @field_validator("variant", "engine", "power", "torque", "description", "image_url")
+    @field_validator("variant", "engine", "power", "torque", "description")
     @classmethod
     def empty_optional_to_none(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return None
         stripped = value.strip()
         return stripped or None
+
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_url(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_optional_http_url(value)
 
 
 class VehicleCreate(VehicleBase):
@@ -136,13 +155,18 @@ class VehicleUpdate(BaseModel):
             raise ValueError("must be a non-empty string")
         return stripped
 
-    @field_validator("variant", "engine", "power", "torque", "description", "image_url")
+    @field_validator("variant", "engine", "power", "torque", "description")
     @classmethod
     def empty_optional_to_none(cls, value: Optional[str]) -> Optional[str]:
         if value is None:
             return None
         stripped = value.strip()
         return stripped or None
+
+    @field_validator("image_url")
+    @classmethod
+    def validate_image_url(cls, value: Optional[str]) -> Optional[str]:
+        return _validate_optional_http_url(value)
 
 
 class VehicleResponse(VehicleBase):

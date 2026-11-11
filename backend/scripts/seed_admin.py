@@ -19,6 +19,10 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from dotenv import load_dotenv  # noqa: E402
+
+load_dotenv(ROOT / ".env")
+
 from app.core.database import SessionLocal  # noqa: E402
 from app.core.security import hash_password  # noqa: E402
 from app.models.admin import Admin  # noqa: E402

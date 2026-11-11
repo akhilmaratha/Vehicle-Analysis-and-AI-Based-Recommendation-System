@@ -107,6 +107,9 @@ export function VehicleForm({ initialVehicle = null, submitLabel = "Save Vehicle
     if (payload.safety_rating != null && (payload.safety_rating < 0 || payload.safety_rating > 5)) {
       return "Safety rating must be between 0 and 5.";
     }
+    if (payload.image_url && !isLikelyUrl(payload.image_url)) {
+      return "Image URL must be a valid http(s) link.";
+    }
     return "";
   }
 

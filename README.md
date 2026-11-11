@@ -80,7 +80,14 @@ CREATE DATABASE vehicle_recommendation;
 DATABASE_URL=postgresql://username:password@localhost:5432/vehicle_recommendation
 ```
 
-Tables are created automatically on API startup via SQLAlchemy (`Base.metadata.create_all`).
+Apply schema with Alembic (do not rely on `create_all` in production):
+
+```bash
+cd backend
+alembic upgrade head
+```
+
+See [docs/PRODUCTION_DATABASE.md](docs/PRODUCTION_DATABASE.md) for SSL, backups, restore, and seed guidance.
 
 ## 7. Environment Variables
 
@@ -92,20 +99,25 @@ NEXT_PUBLIC_API_URL=http://localhost:8000
 
 ### Backend (`backend/.env`)
 
+Copy from `backend/.env.example`. Important production values:
+
 ```env
 DATABASE_URL=postgresql://username:password@localhost:5432/vehicle_recommendation
 GEMINI_API_KEY=
+JWT_SECRET_KEY=replace-with-a-long-random-secret-key
 ALLOWED_ORIGINS=http://localhost:3000
-DEBUG=true
+DEBUG=false
+REQUIRE_DB_ON_STARTUP=true
 ```
 
-Do **not** expose `GEMINI_API_KEY` to the frontend.
+Do **not** expose `GEMINI_API_KEY` or `JWT_SECRET_KEY` to the frontend.
+Vehicle images use direct HTTPS URLs stored in PostgreSQL (no Cloudinary).
 
 ## 8. How to Run Frontend
 
 ```bash
 cd frontend
-npm run dev
+npm run dev -- --hostname localhost --port 3000
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
@@ -115,24 +127,41 @@ Open [http://localhost:3000](http://localhost:3000).
 From the `backend` directory (with venv activated):
 
 ```bash
-uvicorn app.main:app --reload
+uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
 ```
 
 API: [http://localhost:8000](http://localhost:8000)
 
-## 10. API Documentation
+Helper scripts (from repo root):
+
+```powershell
+.\scripts\start-local.ps1
+.\scripts\stop-local.ps1
+```
+
+## 10. Local college demonstration
+
+Full local demo guide, admin setup, Gemini notes, and examiner checklist:
+
+→ **[docs/LOCAL_DEMO.md](docs/LOCAL_DEMO.md)**
+
+Pre-demo verification (servers must be running):
+
+```bash
+cd backend
+python scripts/phase65_demo_verify.py
+```
+
+## 11. API overview
 
 - Health: `GET /api/health`
-- Vehicles: `GET/POST /api/vehicles`, `GET/PUT/DELETE /api/vehicles/{id}`
-- Recommendations (stub): `POST /api/recommendations`
-- Interactive Swagger UI: [http://localhost:8000/docs](http://localhost:8000/docs)
+- Vehicles (public): `GET /api/vehicles`, `GET /api/vehicles/{id|slug}`
+- Recommendations: `POST /api/recommendations`
+- AI: `POST /api/ai/extract-preferences`, `/api/ai/recommendations`, `/api/ai/explain`
+- Admin: `/api/admin/auth/*`, `/api/admin/dashboard/stats`, `/api/admin/vehicles`
 
-## 11. Future AI / Recommendation Implementation
-
-- Wire Gemini for natural-language preference extraction.
-- Implement ranking with scikit-learn in `recommendation_service.py`.
-- Expand filtering, auth, and migrations (e.g. Alembic) as needed.
+Swagger UI is available at `/docs` only when `DEBUG=true`.
 
 ---
 
-Frontend and backend are independently runnable. See `frontend/README.md` and `backend/README.md` for package-specific notes.
+Frontend and backend are independently runnable. See `frontend/README.md`, `backend/README.md`, and `docs/PRODUCTION_DATABASE.md` for more detail.

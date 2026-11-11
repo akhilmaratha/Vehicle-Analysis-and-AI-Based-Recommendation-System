@@ -71,11 +71,15 @@ export default function VehicleDetailPage() {
     const hit = peekVehicleDetail(vehicleId);
 
     if (hit?.data) {
-      setSnapshot({
-        key,
-        vehicle: hit.data,
-        error: null,
-        notFound: false,
+      // Defer so the effect does not sync-set during render cascade (eslint).
+      queueMicrotask(() => {
+        if (!active) return;
+        setSnapshot({
+          key,
+          vehicle: hit.data,
+          error: null,
+          notFound: false,
+        });
       });
     }
 

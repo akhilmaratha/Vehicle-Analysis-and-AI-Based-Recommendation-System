@@ -16,7 +16,59 @@ const API_URL =
  * @param {unknown} data
  * @param {number} status
  */
+function formatValidationList(items) {
+  return items
+    .map((item) => {
+      if (typeof item === "string") return item;
+      if (item && typeof item === "object") {
+        const loc = Array.isArray(item.loc)
+          ? item.loc.filter((part) => part !== "body" && part !== "query").join(".")
+          : "";
+        const msg = item.msg || item.message || "Validation error";
+        return loc ? `${loc}: ${msg}` : msg;
+      }
+      return null;
+    })
+    .filter(Boolean)
+    .join("; ");
+}
+
 function formatErrorMessage(data, status) {
+  if (status === 401) {
+    const msg =
+      data && typeof data === "object" && typeof data.message === "string"
+        ? data.message.trim()
+        : "";
+    return msg || "Admin session expired or invalid. Please sign in again.";
+  }
+  if (status === 403) {
+    return (
+      (data && typeof data === "object" && data.message) ||
+      "You do not have permission to perform this action."
+    );
+  }
+  if (status === 413) {
+    return "Upload or request is too large.";
+  }
+  if (status === 429) {
+    return (
+      (data && typeof data === "object" && data.message) ||
+      "AI service rate limit reached. Please try again shortly."
+    );
+  }
+  if (status === 504) {
+    return (
+      (data && typeof data === "object" && data.message) ||
+      "AI service timed out. Please try again."
+    );
+  }
+  if (status === 503) {
+    return (
+      (data && typeof data === "object" && data.message) ||
+      "Service temporarily unavailable. Check that the API and database are running."
+    );
+  }
+
   if (data == null || data === "") {
     return `Request failed with status ${status}`;
   }
@@ -31,20 +83,10 @@ function formatErrorMessage(data, status) {
       return detail;
     }
     if (Array.isArray(detail) && detail.length > 0) {
-      return detail
-        .map((item) => {
-          if (typeof item === "string") return item;
-          if (item && typeof item === "object") {
-            const loc = Array.isArray(item.loc)
-              ? item.loc.filter((part) => part !== "body" && part !== "query").join(".")
-              : "";
-            const msg = item.msg || item.message || "Validation error";
-            return loc ? `${loc}: ${msg}` : msg;
-          }
-          return null;
-        })
-        .filter(Boolean)
-        .join("; ");
+      return formatValidationList(detail);
+    }
+    if (Array.isArray(data.errors) && data.errors.length > 0) {
+      return formatValidationList(data.errors);
     }
     if (typeof data.message === "string" && data.message.trim()) {
       return data.message;

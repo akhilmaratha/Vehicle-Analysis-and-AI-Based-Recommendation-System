@@ -10,9 +10,11 @@ from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import Session, sessionmaker
 
 os.environ["DATABASE_URL"] = "sqlite://"
-os.environ["JWT_SECRET_KEY"] = "test-secret-key"
+os.environ["JWT_SECRET_KEY"] = "test-secret-key-at-least-24-chars"
 os.environ["ADMIN_COOKIE_SECURE"] = "false"
 os.environ["AUTO_CREATE_TABLES"] = "false"
+os.environ["REQUIRE_DB_ON_STARTUP"] = "false"
+os.environ["DEBUG"] = "false"
 
 from app.core.config import get_settings  # noqa: E402
 
@@ -41,11 +43,9 @@ def _override_db():
         db.close()
 
 
-app.dependency_overrides[get_db] = _override_db
-
-
 @pytest.fixture(autouse=True)
 def reset_db():
+    app.dependency_overrides[get_db] = _override_db
     Base.metadata.drop_all(bind=engine)
     Base.metadata.create_all(bind=engine)
     db = TestingSessionLocal()

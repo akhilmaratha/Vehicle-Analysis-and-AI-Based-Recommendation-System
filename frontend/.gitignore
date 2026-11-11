@@ -20,6 +20,12 @@
 # production
 /build
 
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
+
 # misc
 .DS_Store
 *.pem
@@ -30,8 +36,11 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files — keep examples commitable
+.env
+.env.*
+!.env.example
+!.env.local.example
 
 # vercel
 .vercel

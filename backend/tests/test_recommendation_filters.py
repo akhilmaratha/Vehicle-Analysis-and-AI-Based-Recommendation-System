@@ -232,7 +232,7 @@ class TestGetRecommendationsService:
         assert result.alternatives == []
         assert result.fewer_than_five_eligible is True
         assert result.applied_filters.vehicle_type == "Coupe"
-        assert "No vehicles matched" in result.message
+        assert "No vehicles in the catalog satisfy" in result.message
 
     def test_missing_optional_preferences_echoed(self):
         db = _mock_db([_make_vehicle()])

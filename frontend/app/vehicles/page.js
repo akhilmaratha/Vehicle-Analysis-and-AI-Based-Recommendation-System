@@ -352,12 +352,16 @@ function VehiclesPageContent() {
         typeof hit.data.pages === "number"
           ? Math.max(1, hit.data.pages)
           : Math.max(1, Math.ceil(nextTotal / limit) || 1);
-      setSnapshot({
-        key,
-        vehicles: items,
-        total: nextTotal,
-        pages: nextPages,
-        error: null,
+      // Defer so the effect does not sync-set during render cascade (eslint).
+      queueMicrotask(() => {
+        if (!active) return;
+        setSnapshot({
+          key,
+          vehicles: items,
+          total: nextTotal,
+          pages: nextPages,
+          error: null,
+        });
       });
     }
 

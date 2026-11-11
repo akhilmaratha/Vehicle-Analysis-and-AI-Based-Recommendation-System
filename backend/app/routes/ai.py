@@ -32,6 +32,8 @@ def _http_for_gemini(exc: GeminiError) -> HTTPException:
         status = 429
     elif exc.code == "gemini_timeout":
         status = 504
+    elif exc.code in {"gemini_unavailable", "gemini_model_unavailable"}:
+        status = 503
     return HTTPException(status_code=status, detail=exc.message)
 
 
