@@ -32,6 +32,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { deleteVehicle, getAdminVehicles } from "@/lib/api";
 import { formatPrice, vehicleTitle } from "@/lib/format";
+import { vehicleHref } from "@/lib/vehicle-slug";
 import { FUEL_TYPES, VEHICLE_TYPES } from "@/lib/vehicle-options";
 
 const PAGE_LIMIT = 10;
@@ -290,7 +291,7 @@ export default function AdminVehiclesPage() {
                           size="icon-sm"
                           variant="ghost"
                           nativeButton={false}
-                          render={<Link href={`/vehicles/${vehicle.id}`} />}
+                          render={<Link href={vehicleHref(vehicle)} />}
                           aria-label={`View ${vehicleTitle(vehicle)} on the site`}
                           title="View on site"
                         >

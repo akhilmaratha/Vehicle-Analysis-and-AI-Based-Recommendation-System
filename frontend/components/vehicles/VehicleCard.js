@@ -5,10 +5,16 @@ import { PriceDisplay } from "@/components/vehicles/PriceDisplay";
 import { SpecificationItem } from "@/components/vehicles/SpecificationItem";
 import { formatMileage, vehicleTitle } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { vehicleHref } from "@/lib/vehicle-slug";
+import { writeVehicleDetail } from "@/lib/vehicles-cache";
 
 export function VehicleCard({ vehicle, className }) {
   const title = vehicleTitle(vehicle, "Untitled vehicle");
-  const href = `/vehicles/${vehicle.id}`;
+  const href = vehicleHref(vehicle);
+
+  function prefetchDetail() {
+    if (vehicle?.id != null) writeVehicleDetail(vehicle.id, vehicle);
+  }
 
   return (
     <article
@@ -16,6 +22,8 @@ export function VehicleCard({ vehicle, className }) {
         "group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-card transition-[border-color,box-shadow] duration-200 hover:border-foreground/20 hover:shadow-[0_10px_30px_-18px_rgba(36,39,32,0.35)]",
         className
       )}
+      onMouseEnter={prefetchDetail}
+      onFocusCapture={prefetchDetail}
     >
       <div className="relative">
         <VehicleImage

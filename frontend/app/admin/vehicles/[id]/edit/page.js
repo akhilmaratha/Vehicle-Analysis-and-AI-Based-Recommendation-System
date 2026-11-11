@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getAdminVehicleById, updateVehicle } from "@/lib/api";
 import { vehicleTitle } from "@/lib/format";
+import { vehicleHref } from "@/lib/vehicle-slug";
 
 function EditSkeleton() {
   return (
@@ -91,7 +92,7 @@ export default function EditVehiclePage() {
               <Button
                 variant="outline"
                 nativeButton={false}
-                render={<Link href={`/vehicles/${vehicle.id}`} />}
+                render={<Link href={vehicleHref(vehicle)} />}
               >
                 <Eye data-icon="inline-start" aria-hidden="true" />
                 View on site

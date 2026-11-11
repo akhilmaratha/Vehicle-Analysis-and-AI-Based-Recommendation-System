@@ -30,7 +30,7 @@ import {
 import { formatMileage, vehicleTitle } from "@/lib/format";
 
 /**
- * Full vehicle detail presentation for /vehicles/[id].
+ * Full vehicle detail presentation for /vehicles/[slug].
  */
 export function VehicleDetails({ vehicle }) {
   const router = useRouter();

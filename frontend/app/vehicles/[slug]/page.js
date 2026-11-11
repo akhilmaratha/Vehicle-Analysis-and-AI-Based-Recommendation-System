@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { VehicleDetails } from "@/components/vehicles/VehicleDetails";
 import { VehicleDetailsSkeleton } from "@/components/vehicles/VehicleDetailsSkeleton";
@@ -9,44 +9,75 @@ import { EmptyState } from "@/components/EmptyState";
 import { ErrorState } from "@/components/ErrorState";
 import { Button } from "@/components/ui/button";
 import { getVehicleById } from "@/lib/api";
-
-function parseVehicleId(raw) {
-  const id = Number(raw);
-  if (!Number.isInteger(id) || id < 1) return null;
-  return id;
-}
+import {
+  parseVehicleIdFromSlug,
+  vehicleHref,
+  vehicleSlug,
+} from "@/lib/vehicle-slug";
+import { peekVehicleDetail } from "@/lib/vehicles-cache";
 
 export default function VehicleDetailPage() {
   const params = useParams();
-  const vehicleId = parseVehicleId(params?.id);
-  const invalidId = vehicleId == null;
+  const router = useRouter();
+  const rawSlug = Array.isArray(params?.slug) ? params.slug[0] : params?.slug;
+  const vehicleId = parseVehicleIdFromSlug(rawSlug);
+  const invalidSlug = vehicleId == null;
 
+  const cached = !invalidSlug ? peekVehicleDetail(vehicleId) : null;
   const [reloadToken, setReloadToken] = useState(0);
-  const [snapshot, setSnapshot] = useState({
-    key: null,
-    vehicle: null,
-    error: null,
-    notFound: false,
+  const [snapshot, setSnapshot] = useState(() => {
+    if (!cached?.data) {
+      return { key: null, vehicle: null, error: null, notFound: false };
+    }
+    return {
+      key: `${vehicleId}::0`,
+      vehicle: cached.data,
+      error: null,
+      notFound: false,
+    };
   });
 
-  const fetchKey = invalidId
+  const fetchKey = invalidSlug
     ? `invalid::${reloadToken}`
     : `${vehicleId}::${reloadToken}`;
 
-  const loading = !invalidId && snapshot.key !== fetchKey;
-  const error = !invalidId && snapshot.key === fetchKey ? snapshot.error : null;
+  const display =
+    snapshot.key === fetchKey
+      ? snapshot
+      : cached?.data
+        ? {
+            key: fetchKey,
+            vehicle: cached.data,
+            error: null,
+            notFound: false,
+          }
+        : snapshot;
+
+  const loading = !invalidSlug && display.key !== fetchKey;
+  const error =
+    !invalidSlug && display.key === fetchKey ? display.error : null;
   const notFound =
-    invalidId ||
-    (snapshot.key === fetchKey ? snapshot.notFound : false);
+    invalidSlug ||
+    (display.key === fetchKey ? display.notFound : false);
   const vehicle =
-    !invalidId && snapshot.key === fetchKey ? snapshot.vehicle : null;
+    !invalidSlug && display.key === fetchKey ? display.vehicle : null;
 
   useEffect(() => {
-    if (invalidId) return;
+    if (invalidSlug) return;
 
     const controller = new AbortController();
     let active = true;
     const key = fetchKey;
+    const hit = peekVehicleDetail(vehicleId);
+
+    if (hit?.data) {
+      setSnapshot({
+        key,
+        vehicle: hit.data,
+        error: null,
+        notFound: false,
+      });
+    }
 
     getVehicleById(vehicleId, { signal: controller.signal })
       .then((data) => {
@@ -57,9 +88,16 @@ export default function VehicleDetailPage() {
           error: null,
           notFound: false,
         });
+
+        // Normalize legacy `/vehicles/12` (and mismatched slugs) to the canonical name slug.
+        const canonical = vehicleSlug(data);
+        if (rawSlug && canonical && rawSlug !== canonical) {
+          router.replace(vehicleHref(data));
+        }
       })
       .catch((err) => {
         if (!active || err?.name === "AbortError") return;
+        if (hit?.data) return;
         const is404 = err?.status === 404;
         setSnapshot({
           key,
@@ -75,7 +113,7 @@ export default function VehicleDetailPage() {
       active = false;
       controller.abort();
     };
-  }, [fetchKey, invalidId, vehicleId]);
+  }, [fetchKey, invalidSlug, vehicleId, rawSlug, router]);
 
   return (
     <div className="page-container pt-8 pb-16 sm:pt-10 sm:pb-20">

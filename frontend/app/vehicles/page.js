@@ -19,6 +19,7 @@ import { ErrorState } from "@/components/ErrorState";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { Button } from "@/components/ui/button";
 import { getVehicles } from "@/lib/api";
+import { invalidateVehiclesCache, peekVehiclesList } from "@/lib/vehicles-cache";
 
 /** Backend-supported filter query keys (no model / free-text search). */
 const FILTER_KEYS = [
@@ -238,20 +239,67 @@ function VehiclesPageContent() {
 
   const [reloadToken, setReloadToken] = useState(0);
   const fetchKey = `${searchParams.toString()}::${reloadToken}`;
+  const query = useMemo(
+    () => buildVehiclesQuery(urlFilters, page, limit),
+    [urlFilters, page, limit]
+  );
 
-  const [snapshot, setSnapshot] = useState({
-    key: null,
-    vehicles: [],
-    total: 0,
-    pages: 1,
-    error: null,
+  const cachedHit = peekVehiclesList(query);
+  const [snapshot, setSnapshot] = useState(() => {
+    if (!cachedHit?.data) {
+      return {
+        key: null,
+        vehicles: [],
+        total: 0,
+        pages: 1,
+        error: null,
+      };
+    }
+    const items = Array.isArray(cachedHit.data.items) ? cachedHit.data.items : [];
+    const nextTotal =
+      typeof cachedHit.data.total === "number"
+        ? cachedHit.data.total
+        : items.length;
+    const nextPages =
+      typeof cachedHit.data.pages === "number"
+        ? Math.max(1, cachedHit.data.pages)
+        : Math.max(1, Math.ceil(nextTotal / limit) || 1);
+    return {
+      key: fetchKey,
+      vehicles: items,
+      total: nextTotal,
+      pages: nextPages,
+      error: null,
+    };
   });
 
-  const loading = snapshot.key !== fetchKey;
-  const error = snapshot.key === fetchKey ? snapshot.error : null;
-  const vehicles = snapshot.key === fetchKey ? snapshot.vehicles : [];
-  const total = snapshot.key === fetchKey ? snapshot.total : 0;
-  const pages = snapshot.key === fetchKey ? snapshot.pages : 1;
+  const display =
+    snapshot.key === fetchKey
+      ? snapshot
+      : cachedHit?.data
+        ? {
+            key: fetchKey,
+            vehicles: Array.isArray(cachedHit.data.items)
+              ? cachedHit.data.items
+              : [],
+            total:
+              typeof cachedHit.data.total === "number"
+                ? cachedHit.data.total
+                : 0,
+            pages:
+              typeof cachedHit.data.pages === "number"
+                ? Math.max(1, cachedHit.data.pages)
+                : 1,
+            error: null,
+          }
+        : snapshot;
+
+  const loading = display.key !== fetchKey;
+  const refreshing = !loading && snapshot.key === fetchKey && !cachedHit?.fresh;
+  const error = display.key === fetchKey ? display.error : null;
+  const vehicles = display.key === fetchKey ? display.vehicles : [];
+  const total = display.key === fetchKey ? display.total : 0;
+  const pages = display.key === fetchKey ? display.pages : 1;
 
   const syncUrl = useCallback(
     (nextFilters, nextPage, nextLimit = limit) => {
@@ -293,9 +341,31 @@ function VehiclesPageContent() {
     const controller = new AbortController();
     let active = true;
     const key = fetchKey;
-    const query = buildVehiclesQuery(urlFilters, page, limit);
+    const hit = peekVehiclesList(query);
 
-    getVehicles(query, { signal: controller.signal })
+    // Paint instantly from memory when returning from a detail page.
+    if (hit?.data) {
+      const items = Array.isArray(hit.data.items) ? hit.data.items : [];
+      const nextTotal =
+        typeof hit.data.total === "number" ? hit.data.total : items.length;
+      const nextPages =
+        typeof hit.data.pages === "number"
+          ? Math.max(1, hit.data.pages)
+          : Math.max(1, Math.ceil(nextTotal / limit) || 1);
+      setSnapshot({
+        key,
+        vehicles: items,
+        total: nextTotal,
+        pages: nextPages,
+        error: null,
+      });
+    }
+
+    // Fresh cache: skip network. Stale/missing: fetch (deduped in api layer).
+    getVehicles(query, {
+      signal: controller.signal,
+      force: reloadToken > 0 && !hit?.fresh,
+    })
       .then((data) => {
         if (!active) return;
         const items = Array.isArray(data?.items) ? data.items : [];
@@ -316,6 +386,8 @@ function VehiclesPageContent() {
       })
       .catch((err) => {
         if (!active || err?.name === "AbortError") return;
+        // Keep cached vehicles visible if a background refresh fails.
+        if (hit?.data) return;
         setSnapshot({
           key,
           vehicles: [],
@@ -329,7 +401,7 @@ function VehiclesPageContent() {
       active = false;
       controller.abort();
     };
-  }, [fetchKey, urlFilters, page, limit]);
+  }, [fetchKey, query, limit, reloadToken]);
 
   useEffect(() => {
     return () => {
@@ -435,6 +507,7 @@ function VehiclesPageContent() {
                   {total} vehicle{total === 1 ? "" : "s"}
                   <span className="font-normal text-muted-foreground">
                     {activeFilters ? " match your filters" : " in the catalog"}
+                    {refreshing ? " · updating" : ""}
                   </span>
                 </>
               )}
@@ -462,7 +535,10 @@ function VehiclesPageContent() {
             <ErrorState
               title="Could not load vehicles"
               description={error}
-              onRetry={() => setReloadToken((token) => token + 1)}
+              onRetry={() => {
+                invalidateVehiclesCache();
+                setReloadToken((token) => token + 1);
+              }}
               retryLabel="Retry"
             />
           ) : loading ? (

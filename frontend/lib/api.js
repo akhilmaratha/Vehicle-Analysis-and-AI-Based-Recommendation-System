@@ -195,12 +195,7 @@ export function getVehicles(params = {}, options = {}) {
 export function getVehicleById(idOrSlug, options = {}) {
   const { force = false, bypassCache = false, ...requestOptions } = options;
   const ref = encodeURIComponent(String(idOrSlug));
-  const numericId =
-    typeof idOrSlug === "number"
-      ? idOrSlug
-      : /^\d+$/.test(String(idOrSlug))
-        ? Number(idOrSlug)
-        : null;
+  const numericId = parseVehicleIdFromSlug(idOrSlug);
 
   if (bypassCache) {
     return request(`/api/vehicles/${ref}`, {
@@ -218,10 +213,7 @@ export function getVehicleById(idOrSlug, options = {}) {
       }),
     {
       force,
-      peek: () =>
-        numericId != null
-          ? peekVehicleDetail(numericId)
-          : peekVehicleDetail(idOrSlug),
+      peek: () => (numericId != null ? peekVehicleDetail(numericId) : null),
       write: (data) => {
         if (data?.id != null) writeVehicleDetail(data.id, data);
       },
@@ -230,29 +222,35 @@ export function getVehicleById(idOrSlug, options = {}) {
 }
 
 /** POST /api/admin/vehicles */
-export function createVehicle(data, options = {}) {
-  return request("/api/admin/vehicles", {
+export async function createVehicle(data, options = {}) {
+  const created = await request("/api/admin/vehicles", {
     method: "POST",
     body: data,
     ...options,
   });
+  invalidateVehiclesCache();
+  return created;
 }
 
 /** PUT /api/admin/vehicles/{id} */
-export function updateVehicle(id, data, options = {}) {
-  return request(`/api/admin/vehicles/${id}`, {
+export async function updateVehicle(id, data, options = {}) {
+  const updated = await request(`/api/admin/vehicles/${id}`, {
     method: "PUT",
     body: data,
     ...options,
   });
+  invalidateVehiclesCache();
+  return updated;
 }
 
 /** DELETE /api/admin/vehicles/{id} — returns null on 204 */
-export function deleteVehicle(id, options = {}) {
-  return request(`/api/admin/vehicles/${id}`, {
+export async function deleteVehicle(id, options = {}) {
+  const result = await request(`/api/admin/vehicles/${id}`, {
     method: "DELETE",
     ...options,
   });
+  invalidateVehiclesCache();
+  return result;
 }
 
 export function adminLogin(credentials, options = {}) {

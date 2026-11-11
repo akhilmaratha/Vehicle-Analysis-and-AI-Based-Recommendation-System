@@ -87,7 +87,16 @@ export async function cachedFetch(key, fetcher, options = {}) {
   }
 
   if (inflight.has(key)) {
-    return inflight.get(key);
+    return inflight.get(key).catch((error) => {
+      // A sibling caller may have aborted; retry once for this consumer.
+      if (error?.name === "AbortError") {
+        return fetcher().then((data) => {
+          write?.(data);
+          return data;
+        });
+      }
+      throw error;
+    });
   }
 
   const promise = fetcher()

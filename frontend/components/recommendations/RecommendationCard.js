@@ -5,6 +5,7 @@ import { PriceDisplay } from "@/components/vehicles/PriceDisplay";
 import { Badge } from "@/components/ui/badge";
 import { formatMileage, formatScore, vehicleTitle } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { vehicleHref } from "@/lib/vehicle-slug";
 
 const SCORES = [
   {
@@ -105,7 +106,10 @@ export function RecommendationCard({ recommendation, variant = "featured" }) {
     explanation?.why_matches ||
     recommendation.reason ||
     "Matched your confirmed preferences via the ranking pipeline.";
-  const href = recommendation.id != null ? `/vehicles/${recommendation.id}` : null;
+  const href =
+    recommendation?.id != null || recommendation?.slug
+      ? vehicleHref(recommendation)
+      : null;
 
   if (variant === "compact") {
     return (

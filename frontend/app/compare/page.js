@@ -23,6 +23,7 @@ import {
   subscribeCompare,
 } from "@/lib/compare";
 import { vehicleTitle } from "@/lib/format";
+import { vehicleHref } from "@/lib/vehicle-slug";
 
 function useCompareIds() {
   const snapshot = useSyncExternalStore(
@@ -61,7 +62,7 @@ function SelectedVehicleCard({ vehicle, onRemove }) {
         <div className="min-w-0">
           <p className="text-xs font-medium text-muted-foreground">{vehicle.brand}</p>
           <h2 className="font-heading text-lg leading-snug font-bold">
-            <Link href={`/vehicles/${vehicle.id}`} className="hover:text-primary">
+            <Link href={vehicleHref(vehicle)} className="hover:text-primary">
               {vehicle.model || title}
             </Link>
           </h2>

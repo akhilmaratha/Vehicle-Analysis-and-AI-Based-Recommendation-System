@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { formatINR, formatMileage, vehicleTitle } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { vehicleHref } from "@/lib/vehicle-slug";
 
 function withUnit(value, unit) {
   if (value === undefined || value === null || value === "") return null;
@@ -76,7 +77,7 @@ export function ComparisonTable({ vehicles, highlightDifferences = true }) {
                     {vehicle.brand}
                   </span>
                   <Link
-                    href={`/vehicles/${vehicle.id}`}
+                    href={vehicleHref(vehicle)}
                     className="font-heading text-base font-bold text-foreground hover:text-primary"
                   >
                     {vehicle.model || vehicleTitle(vehicle)}
