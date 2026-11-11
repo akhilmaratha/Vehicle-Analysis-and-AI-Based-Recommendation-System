@@ -9,6 +9,9 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 
+/** Sentinel for the clearing / "Any" option — Base UI Select values must be strings. */
+const ANY_VALUE = "__any__";
+
 function normalizeOptions(options) {
   return options.map((option) =>
     typeof option === "string" ? { value: option, label: option } : option
@@ -34,14 +37,18 @@ export function FieldSelect({
 }) {
   const normalized = normalizeOptions(options);
   const items = anyLabel
-    ? [{ value: null, label: anyLabel }, ...normalized]
+    ? [{ value: ANY_VALUE, label: anyLabel }, ...normalized]
     : normalized;
+  const isEmpty = value === "" || value == null;
+  const selectValue = isEmpty ? (anyLabel ? ANY_VALUE : null) : value;
 
   return (
     <Select
       items={items}
-      value={value === "" || value == null ? null : value}
-      onValueChange={(next) => onChange(next == null ? "" : String(next))}
+      value={selectValue}
+      onValueChange={(next) =>
+        onChange(next == null || next === ANY_VALUE ? "" : String(next))
+      }
       disabled={disabled}
     >
       <SelectTrigger
@@ -55,7 +62,7 @@ export function FieldSelect({
       </SelectTrigger>
       <SelectContent>
         {items.map((item) => (
-          <SelectItem key={item.value ?? "__any"} value={item.value}>
+          <SelectItem key={item.value} value={item.value}>
             {item.label}
           </SelectItem>
         ))}

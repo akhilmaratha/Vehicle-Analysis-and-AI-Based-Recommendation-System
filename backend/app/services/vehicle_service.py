@@ -143,6 +143,36 @@ def get_vehicle_by_id(db: Session, vehicle_id: int) -> Vehicle:
     return vehicle
 
 
+def get_vehicle_by_ref(db: Session, vehicle_ref: str) -> Vehicle:
+    """Resolve a vehicle by numeric id or public slug (…-id)."""
+    from app.utils.vehicle_slug import (
+        build_vehicle_slug_from_obj,
+        parse_vehicle_id_from_ref,
+    )
+
+    ref = (vehicle_ref or "").strip()
+    vehicle_id = parse_vehicle_id_from_ref(ref)
+    if vehicle_id is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Vehicle '{vehicle_ref}' not found",
+        )
+
+    vehicle = get_vehicle_by_id(db, vehicle_id)
+
+    # Numeric legacy URLs are accepted as-is; slug URLs must match the canonical slug.
+    if ref.isdigit():
+        return vehicle
+
+    canonical = build_vehicle_slug_from_obj(vehicle)
+    if canonical != ref:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Vehicle '{vehicle_ref}' not found",
+        )
+    return vehicle
+
+
 def create_vehicle(db: Session, payload: VehicleCreate) -> Vehicle:
     vehicle = Vehicle(**payload.model_dump())
     try:

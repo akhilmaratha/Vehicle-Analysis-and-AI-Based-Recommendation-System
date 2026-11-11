@@ -5,9 +5,12 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    computed_field,
     field_validator,
     model_validator,
 )
+
+from app.utils.vehicle_slug import build_vehicle_slug
 
 
 FuelType = Literal["Petrol", "Diesel", "CNG", "Electric", "Hybrid"]
@@ -150,6 +153,12 @@ class VehicleResponse(VehicleBase):
     id: int
     created_at: datetime
     updated_at: datetime
+
+    @computed_field
+    @property
+    def slug(self) -> str:
+        """Public detail-page slug: brand-model-variant-id."""
+        return build_vehicle_slug(self.brand, self.model, self.variant, self.id)
 
 
 # Compatibility alias for existing routes/services that import VehicleRead.

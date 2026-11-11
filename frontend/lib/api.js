@@ -1,3 +1,13 @@
+import {
+  cachedFetch,
+  invalidateVehiclesCache,
+  peekVehicleDetail,
+  peekVehiclesList,
+  writeVehicleDetail,
+  writeVehiclesList,
+} from "@/lib/vehicles-cache";
+import { parseVehicleIdFromSlug } from "@/lib/vehicle-slug";
+
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
@@ -149,15 +159,74 @@ export function getHealth(options = {}) {
  * sort_by, sort_order
  *
  * @param {Record<string, unknown>} [params]
+ * @param {{ signal?: AbortSignal, force?: boolean, bypassCache?: boolean }} [options]
  */
 export function getVehicles(params = {}, options = {}) {
+  const { force = false, bypassCache = false, ...requestOptions } = options;
   const query = buildQueryString(params);
-  return request(`/api/vehicles${query}`, { method: "GET", ...options });
+
+  if (bypassCache) {
+    return request(`/api/vehicles${query}`, {
+      method: "GET",
+      ...requestOptions,
+    });
+  }
+
+  return cachedFetch(
+    `vehicles:list:${query || "default"}`,
+    () =>
+      request(`/api/vehicles${query}`, {
+        method: "GET",
+        ...requestOptions,
+      }),
+    {
+      force,
+      peek: () => peekVehiclesList(params),
+      write: (data) => writeVehiclesList(params, data),
+    }
+  );
 }
 
-/** GET /api/vehicles/{id} */
-export function getVehicleById(id, options = {}) {
-  return request(`/api/vehicles/${id}`, { method: "GET", ...options });
+/**
+ * GET /api/vehicles/{id|slug}
+ * @param {number|string} idOrSlug
+ * @param {{ signal?: AbortSignal, force?: boolean, bypassCache?: boolean }} [options]
+ */
+export function getVehicleById(idOrSlug, options = {}) {
+  const { force = false, bypassCache = false, ...requestOptions } = options;
+  const ref = encodeURIComponent(String(idOrSlug));
+  const numericId =
+    typeof idOrSlug === "number"
+      ? idOrSlug
+      : /^\d+$/.test(String(idOrSlug))
+        ? Number(idOrSlug)
+        : null;
+
+  if (bypassCache) {
+    return request(`/api/vehicles/${ref}`, {
+      method: "GET",
+      ...requestOptions,
+    });
+  }
+
+  return cachedFetch(
+    `vehicles:detail:${idOrSlug}`,
+    () =>
+      request(`/api/vehicles/${ref}`, {
+        method: "GET",
+        ...requestOptions,
+      }),
+    {
+      force,
+      peek: () =>
+        numericId != null
+          ? peekVehicleDetail(numericId)
+          : peekVehicleDetail(idOrSlug),
+      write: (data) => {
+        if (data?.id != null) writeVehicleDetail(data.id, data);
+      },
+    }
+  );
 }
 
 /** POST /api/admin/vehicles */

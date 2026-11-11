@@ -551,10 +551,10 @@ function RecommendationsPageInner() {
 
                 {recommendations.length === 0 ? (
                   <EmptyState
-                    title="No vehicles matched your requirements"
+                    title="No vehicles matched these filters together"
                     description={
                       statusMessage ||
-                      "No vehicles matched the mandatory filters. Try relaxing your budget, fuel or body type."
+                      "The catalog has no vehicle that satisfies every hard filter at once. Clear fuel or transmission, raise the budget, or switch body type."
                     }
                     action={
                       <Button

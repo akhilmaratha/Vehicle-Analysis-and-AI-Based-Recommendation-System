@@ -169,8 +169,29 @@ def _build_message(
     recommendations_count: int,
     alternatives_count: int,
     fewer_than_five_eligible: bool,
+    applied_filters: AppliedFilters | None = None,
 ) -> str:
     if total_eligible == 0:
+        filter_bits: List[str] = []
+        if applied_filters is not None:
+            if applied_filters.budget_max is not None:
+                filter_bits.append(f"budget ≤ {int(applied_filters.budget_max)}")
+            if applied_filters.budget_min is not None:
+                filter_bits.append(f"budget ≥ {int(applied_filters.budget_min)}")
+            if applied_filters.vehicle_type:
+                filter_bits.append(str(applied_filters.vehicle_type))
+            if applied_filters.fuel_type:
+                filter_bits.append(str(applied_filters.fuel_type))
+            if applied_filters.transmission:
+                filter_bits.append(str(applied_filters.transmission))
+            if applied_filters.seating_capacity is not None:
+                filter_bits.append(f"{applied_filters.seating_capacity}+ seats")
+        if filter_bits:
+            return (
+                "No vehicles in the catalog satisfy all of these filters together: "
+                + ", ".join(filter_bits)
+                + ". Try clearing fuel, transmission, or raising the budget."
+            )
         return "No vehicles matched the provided requirements."
 
     parts = [
@@ -179,8 +200,8 @@ def _build_message(
     ]
     if fewer_than_five_eligible:
         parts.append(
-            f"Fewer than {PRIMARY_TOP_N} vehicles matched the mandatory filters; "
-            "no additional mandatory-compliant alternatives are available."
+            f"Only {total_eligible} vehicle(s) fit every hard filter, "
+            "so there are no extra alternatives without relaxing filters."
         )
     elif alternatives_count > 0:
         parts.append(
@@ -224,6 +245,7 @@ def get_recommendations(
                 recommendations_count=0,
                 alternatives_count=0,
                 fewer_than_five_eligible=True,
+                applied_filters=applied,
             ),
             total=0,
             total_eligible=0,
@@ -255,6 +277,7 @@ def get_recommendations(
             recommendations_count=recommendations_count,
             alternatives_count=alternatives_count,
             fewer_than_five_eligible=fewer,
+            applied_filters=applied,
         ),
         total=total_eligible,
         total_eligible=total_eligible,

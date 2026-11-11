@@ -10,10 +10,10 @@ import { FUEL_TYPES, TRANSMISSIONS, VEHICLE_TYPES } from "@/lib/vehicle-options"
 
 const defaultValues = {
   budget: "1500000",
-  fuel_type: "Petrol",
-  transmission: "Automatic",
+  fuel_type: "",
+  transmission: "",
   vehicle_type: "SUV",
-  minimum_mileage: "15",
+  minimum_mileage: "",
   seating_capacity: "5",
   priority_mileage: true,
   priority_safety: true,
@@ -165,6 +165,7 @@ export function VehicleSearchForm({
             value={values.fuel_type}
             onChange={(v) => update("fuel_type", v)}
             options={FUEL_TYPES}
+            anyLabel="Any fuel"
             disabled={disabled}
           />
         </div>
@@ -175,6 +176,7 @@ export function VehicleSearchForm({
             value={values.transmission}
             onChange={(v) => update("transmission", v)}
             options={TRANSMISSIONS}
+            anyLabel="Either"
             disabled={disabled}
           />
         </div>
@@ -185,6 +187,7 @@ export function VehicleSearchForm({
             value={values.vehicle_type}
             onChange={(v) => update("vehicle_type", v)}
             options={VEHICLE_TYPES}
+            anyLabel="Any type"
             disabled={disabled}
           />
         </div>

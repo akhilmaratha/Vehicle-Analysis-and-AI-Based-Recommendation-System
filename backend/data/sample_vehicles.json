@@ -646,5 +646,41 @@
     "safety_rating": 1.0,
     "description": "DEMO DATA — Entry hatch AMT sample for low-price filters.",
     "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Renault_Kwid.jpg"
+  },
+  {
+    "brand": "Tata",
+    "model": "Nexon",
+    "variant": "Creative+ Diesel AMT",
+    "price": 1450000,
+    "fuel_type": "Diesel",
+    "transmission": "Automatic",
+    "vehicle_type": "SUV",
+    "mileage": 23.2,
+    "engine": "1.5L Diesel",
+    "power": "115 PS",
+    "torque": "260 Nm",
+    "seating_capacity": 5,
+    "boot_space": 382,
+    "safety_rating": 5.0,
+    "description": "DEMO DATA — Compact diesel AMT SUV under 15 lakh for common recommendation queries.",
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/2023_Tata_Nexon_XZA%2B_front_view.jpg"
+  },
+  {
+    "brand": "Maruti Suzuki",
+    "model": "Brezza",
+    "variant": "ZXI+ Diesel AT",
+    "price": 1390000,
+    "fuel_type": "Diesel",
+    "transmission": "Automatic",
+    "vehicle_type": "SUV",
+    "mileage": 24.1,
+    "engine": "1.5L Diesel",
+    "power": "103 PS",
+    "torque": "250 Nm",
+    "seating_capacity": 5,
+    "boot_space": 328,
+    "safety_rating": 4.0,
+    "description": "DEMO DATA — Subcompact diesel automatic SUV sample under 15 lakh.",
+    "image_url": "https://commons.wikimedia.org/wiki/Special:FilePath/Maruti_Suzuki_Brezza.jpg"
   }
 ]

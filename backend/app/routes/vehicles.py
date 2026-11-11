@@ -93,9 +93,9 @@ async def list_vehicles(
 
 
 @router.get(
-    "/{vehicle_id}",
+    "/{vehicle_ref}",
     response_model=VehicleResponse,
-    summary="Get vehicle by ID",
+    summary="Get vehicle by ID or slug",
     responses={
         200: {"description": "Vehicle found"},
         404: {"description": "Vehicle not found"},
@@ -103,10 +103,14 @@ async def list_vehicles(
     },
 )
 async def get_vehicle(
-    vehicle_id: int = Path(..., ge=1, description="Vehicle primary key"),
+    vehicle_ref: str = Path(
+        ...,
+        min_length=1,
+        description="Numeric id or public slug (brand-model-variant-id)",
+    ),
     db: Session = Depends(get_db),
 ) -> VehicleResponse:
-    """Fetch a single vehicle by ID."""
-    return vehicle_service.get_vehicle_by_id(db, vehicle_id)
+    """Fetch a single vehicle by numeric id or canonical name slug."""
+    return vehicle_service.get_vehicle_by_ref(db, vehicle_ref)
 
 
